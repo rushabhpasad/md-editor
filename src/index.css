@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+@import './styles/themes.css';
+@import './styles/editor.css';
+@import './styles/preview.css';
+
+/* Utility classes used by components */
+.bg-app { background-color: var(--color-app-bg); }
+.text-app-text { color: var(--color-app-text); }
+.bg-toolbar { background-color: var(--color-toolbar-bg); }
+.text-toolbar-text { color: var(--color-toolbar-text); }
+.border-toolbar-border { border-color: var(--color-toolbar-border); }
+.bg-toolbar-hover:hover { background-color: var(--color-toolbar-hover); }
+.bg-statusbar { background-color: var(--color-statusbar-bg); }
+.text-statusbar-text { color: var(--color-statusbar-text); }
+.bg-panel { background-color: var(--color-panel-bg); }
+.text-panel-text { color: var(--color-panel-text); }
+.bg-accent { background-color: var(--color-accent); }
+.bg-accent-hover:hover { background-color: var(--color-accent-hover); }
+
+/* Settings panel utilities */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.setting-label {
+  font-size: 0.875rem;
+  color: var(--color-app-text);
+  flex: 1;
+}
+
+.setting-select,
+.setting-input {
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  color: var(--color-app-text);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.setting-select:focus,
+.setting-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-statusbar-text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}

@@ -1,0 +1,120 @@
+/* GitHub-style preview */
+.preview-pane {
+  background: var(--color-preview-bg);
+  color: var(--color-app-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.preview-pane h1,
+.preview-pane h2,
+.preview-pane h3,
+.preview-pane h4,
+.preview-pane h5,
+.preview-pane h6 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.3em;
+}
+
+.preview-pane h1 { font-size: 2em; border-bottom: 1px solid var(--color-border); }
+.preview-pane h2 { font-size: 1.5em; border-bottom: 1px solid var(--color-border); }
+.preview-pane h3 { font-size: 1.25em; }
+.preview-pane h4 { font-size: 1em; }
+
+.preview-pane p {
+  margin-bottom: 1rem;
+}
+
+.preview-pane a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.preview-pane a:hover {
+  text-decoration: underline;
+}
+
+.preview-pane ul,
+.preview-pane ol {
+  padding-left: 2em;
+  margin-bottom: 1rem;
+}
+
+.preview-pane li {
+  margin: 0.25rem 0;
+}
+
+.preview-pane blockquote {
+  border-left: 4px solid var(--color-border);
+  padding: 0.25rem 1rem;
+  color: var(--color-statusbar-text);
+  margin: 1rem 0;
+}
+
+.preview-pane code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.875em;
+  background: var(--color-toolbar-bg);
+  padding: 0.2em 0.4em;
+  border-radius: 6px;
+}
+
+.preview-pane pre {
+  background: var(--color-toolbar-bg);
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  border: 1px solid var(--color-border);
+}
+
+.preview-pane pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.875em;
+}
+
+.preview-pane table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.preview-pane th,
+.preview-pane td {
+  border: 1px solid var(--color-border);
+  padding: 0.5rem 0.75rem;
+}
+
+.preview-pane th {
+  background: var(--color-toolbar-bg);
+  font-weight: 600;
+}
+
+.preview-pane tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--color-toolbar-bg) 50%, transparent);
+}
+
+.preview-pane hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1.5rem 0;
+}
+
+.preview-pane img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* highlight.js overrides for dark theme */
+[data-theme="dark"] .preview-pane .hljs {
+  background: #161b22;
+  color: #e6edf3;
+}
+[data-theme="solarized-dark"] .preview-pane .hljs {
+  background: #073642;
+  color: #839496;
+}

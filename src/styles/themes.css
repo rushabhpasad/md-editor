@@ -1,0 +1,88 @@
+/* ============================================================
+   Theme Variables
+   ============================================================ */
+
+/* Light (default) */
+:root,
+[data-theme="light"] {
+  --color-app-bg: #ffffff;
+  --color-app-text: #24292f;
+  --color-toolbar-bg: #f6f8fa;
+  --color-toolbar-text: #24292f;
+  --color-toolbar-border: #d0d7de;
+  --color-toolbar-hover: #e1e4e8;
+  --color-statusbar-bg: #f6f8fa;
+  --color-statusbar-text: #57606a;
+  --color-panel-bg: #ffffff;
+  --color-panel-text: #24292f;
+  --color-accent: #0969da;
+  --color-accent-hover: #0550ae;
+  --color-editor-bg: #ffffff;
+  --color-preview-bg: #ffffff;
+  --color-border: #d0d7de;
+  --color-input-bg: #ffffff;
+  --color-input-border: #d0d7de;
+}
+
+/* Dark */
+[data-theme="dark"] {
+  --color-app-bg: #0d1117;
+  --color-app-text: #e6edf3;
+  --color-toolbar-bg: #161b22;
+  --color-toolbar-text: #e6edf3;
+  --color-toolbar-border: #30363d;
+  --color-toolbar-hover: #21262d;
+  --color-statusbar-bg: #161b22;
+  --color-statusbar-text: #8b949e;
+  --color-panel-bg: #161b22;
+  --color-panel-text: #e6edf3;
+  --color-accent: #58a6ff;
+  --color-accent-hover: #388bfd;
+  --color-editor-bg: #0d1117;
+  --color-preview-bg: #0d1117;
+  --color-border: #30363d;
+  --color-input-bg: #0d1117;
+  --color-input-border: #30363d;
+}
+
+/* Solarized Light */
+[data-theme="solarized-light"] {
+  --color-app-bg: #fdf6e3;
+  --color-app-text: #657b83;
+  --color-toolbar-bg: #eee8d5;
+  --color-toolbar-text: #586e75;
+  --color-toolbar-border: #d3cbb8;
+  --color-toolbar-hover: #ddd6c0;
+  --color-statusbar-bg: #eee8d5;
+  --color-statusbar-text: #839496;
+  --color-panel-bg: #fdf6e3;
+  --color-panel-text: #657b83;
+  --color-accent: #268bd2;
+  --color-accent-hover: #1a6ba8;
+  --color-editor-bg: #fdf6e3;
+  --color-preview-bg: #fdf6e3;
+  --color-border: #d3cbb8;
+  --color-input-bg: #fdf6e3;
+  --color-input-border: #d3cbb8;
+}
+
+/* Solarized Dark */
+[data-theme="solarized-dark"] {
+  --color-app-bg: #002b36;
+  --color-app-text: #93a1a1;
+  --color-toolbar-bg: #073642;
+  --color-toolbar-text: #93a1a1;
+  --color-toolbar-border: #0a4252;
+  --color-toolbar-hover: #094152;
+  --color-statusbar-bg: #073642;
+  --color-statusbar-text: #657b83;
+  --color-panel-bg: #073642;
+  --color-panel-text: #839496;
+  --color-accent: #268bd2;
+  --color-accent-hover: #1a6ba8;
+  --color-editor-bg: #002b36;
+  --color-preview-bg: #002b36;
+  --color-border: #0a4252;
+  --color-input-bg: #002b36;
+  --color-input-border: #0a4252;
+}
