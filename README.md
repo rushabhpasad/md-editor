@@ -32,7 +32,23 @@ A lightweight, cross-platform desktop Markdown editor with a live split-pane pre
 | State | Zustand |
 | File I/O | Tauri `fs` + `dialog` plugins |
 
-## Prerequisites
+## Installation
+
+Download the latest release from the [Releases page](https://github.com/rushabhpasad/md-editor/releases).
+
+### macOS
+
+Open the `.dmg`, drag **MD Editor** to your Applications folder, then:
+
+> **"MD Editor is damaged and can't be opened"** — this appears because the app is not yet code-signed with an Apple Developer ID. Remove the quarantine attribute with:
+>
+> ```bash
+> xattr -cr "/Applications/MD Editor.app"
+> ```
+>
+> Alternatively, right-click the app → **Open** → click **Open** in the dialog.
+
+## Prerequisites (Building from Source)
 
 - [Rust](https://www.rust-lang.org/tools/install) (stable, 1.77+)
 - [Node.js](https://nodejs.org) 18+
@@ -42,7 +58,7 @@ A lightweight, cross-platform desktop Markdown editor with a live split-pane pre
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/md-editor.git
+git clone https://github.com/rushabhpasad/md-editor.git
 cd md-editor
 
 # Install frontend dependencies
