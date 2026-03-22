@@ -18,6 +18,9 @@ on:
 #                    and rushabhpasad/scoop-bucket
 #   WINGET_TOKEN   — PAT with `public_repo` scope (for winget PR)
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: read
 
