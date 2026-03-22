@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type Theme = 'system' | 'light' | 'dark' | 'solarized-light' | 'solarized-dark';
+export type TabViewMode = 'edit' | 'preview' | 'split';
 
 export interface Settings {
   theme: Theme;
@@ -21,9 +22,22 @@ export interface Tab {
   content: string;
   filePath: string | null;
   isDirty: boolean;
+  mode: TabViewMode;       // per-tab view mode
+  scrollSync: boolean;     // per-tab scroll sync toggle
+  savedContent: string;    // content at last save (for diff view)
 }
 
 const INITIAL_TAB_ID = 'tab-initial';
+
+interface SessionTab {
+  id: string;
+  filePath: string | null;
+  content: string;
+  isDirty: boolean;
+  mode: TabViewMode;
+  scrollSync: boolean;
+  savedContent: string;
+}
 
 interface AppState {
   // Active document state (always mirrors the active tab)
@@ -43,11 +57,17 @@ interface AppState {
   showSettings: boolean;
   showRecentFiles: boolean;
   viewOnlyMode: boolean;
+  showAbout: boolean;
+  showExport: boolean;
+  showDiff: boolean;
 
   cursorLine: number;
   cursorCol: number;
 
   settings: Settings;
+
+  // Session persistence (populated by partialize, read on startup)
+  sessionTabs?: SessionTab[];
 
   // Document actions (sync active tab automatically)
   setContent: (content: string) => void;
@@ -61,6 +81,11 @@ interface AppState {
   closeTab: (id: string) => void;
   activateTab: (id: string) => void;
 
+  // Per-tab mode/sync actions
+  setTabMode: (mode: TabViewMode) => void;
+  setTabScrollSync: (sync: boolean) => void;
+  setSavedContent: (savedContent: string) => void;
+
   // UI actions
   setShowEditor: (show: boolean) => void;
   setShowPreview: (show: boolean) => void;
@@ -68,6 +93,9 @@ interface AppState {
   setShowSettings: (show: boolean) => void;
   setShowRecentFiles: (show: boolean) => void;
   setViewOnlyMode: (mode: boolean) => void;
+  setShowAbout: (show: boolean) => void;
+  setShowExport: (show: boolean) => void;
+  setShowDiff: (show: boolean) => void;
   setCursor: (line: number, col: number) => void;
   updateSettings: (settings: Partial<Settings>) => void;
 }
@@ -93,7 +121,7 @@ export const useAppStore = create<AppState>()(
       isDirty: false,
       recentFiles: [],
 
-      tabs: [{ id: INITIAL_TAB_ID, content: '', filePath: null, isDirty: false }],
+      tabs: [{ id: INITIAL_TAB_ID, content: '', filePath: null, isDirty: false, mode: 'split', scrollSync: true, savedContent: '' }],
       activeTabId: INITIAL_TAB_ID,
 
       showEditor: true,
@@ -102,11 +130,16 @@ export const useAppStore = create<AppState>()(
       showSettings: false,
       showRecentFiles: false,
       viewOnlyMode: false,
+      showAbout: false,
+      showExport: false,
+      showDiff: false,
 
       cursorLine: 1,
       cursorCol: 1,
 
       settings: defaultSettings,
+
+      sessionTabs: undefined,
 
       // Keep active tab in sync on every content/path/dirty change
       setContent: (content) =>
@@ -144,7 +177,7 @@ export const useAppStore = create<AppState>()(
       newTab: () =>
         set((state) => {
           const id = `tab-${Date.now()}`;
-          const newTabEntry: Tab = { id, content: '', filePath: null, isDirty: false };
+          const newTabEntry: Tab = { id, content: '', filePath: null, isDirty: false, mode: 'edit', scrollSync: true, savedContent: '' };
           return {
             tabs: [...state.tabs, newTabEntry],
             activeTabId: id,
@@ -164,7 +197,7 @@ export const useAppStore = create<AppState>()(
               content: '',
               filePath: null,
               isDirty: false,
-              tabs: [{ id: state.activeTabId, content: '', filePath: null, isDirty: false }],
+              tabs: [{ id: state.activeTabId, content: '', filePath: null, isDirty: false, mode: 'split', scrollSync: true, savedContent: '' }],
             };
           }
           const idx = state.tabs.findIndex((t) => t.id === id);
@@ -200,12 +233,36 @@ export const useAppStore = create<AppState>()(
           };
         }),
 
+      setTabMode: (mode) =>
+        set((state) => ({
+          tabs: state.tabs.map((t) =>
+            t.id === state.activeTabId ? { ...t, mode } : t
+          ),
+        })),
+
+      setTabScrollSync: (sync) =>
+        set((state) => ({
+          tabs: state.tabs.map((t) =>
+            t.id === state.activeTabId ? { ...t, scrollSync: sync } : t
+          ),
+        })),
+
+      setSavedContent: (savedContent) =>
+        set((state) => ({
+          tabs: state.tabs.map((t) =>
+            t.id === state.activeTabId ? { ...t, savedContent } : t
+          ),
+        })),
+
       setShowEditor: (showEditor) => set({ showEditor }),
       setShowPreview: (showPreview) => set({ showPreview }),
       setShowToolbar: (showToolbar) => set({ showToolbar }),
       setShowSettings: (showSettings) => set({ showSettings }),
       setShowRecentFiles: (showRecentFiles) => set({ showRecentFiles }),
       setViewOnlyMode: (viewOnlyMode) => set({ viewOnlyMode }),
+      setShowAbout: (showAbout) => set({ showAbout }),
+      setShowExport: (showExport) => set({ showExport }),
+      setShowDiff: (showDiff) => set({ showDiff }),
       setCursor: (cursorLine, cursorCol) => set({ cursorLine, cursorCol }),
       updateSettings: (newSettings) =>
         set((state) => ({
@@ -217,6 +274,19 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         settings: state.settings,
         recentFiles: state.recentFiles,
+        sessionTabs: state.tabs
+          .map((t) => ({
+            id: t.id,
+            filePath: t.filePath,
+            // Only persist content for untitled tabs (no file path)
+            content: t.filePath ? '' : t.content,
+            isDirty: t.filePath ? false : t.isDirty,
+            mode: t.mode,
+            scrollSync: t.scrollSync,
+            savedContent: t.filePath ? '' : t.savedContent,
+          }))
+          .filter((t) => t.filePath || t.content), // skip empty untitled tabs
+        activeTabId: state.activeTabId,
       }),
     }
   )

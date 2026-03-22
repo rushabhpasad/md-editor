@@ -10,7 +10,7 @@ import { useAppStore } from './store/appStore';
 import './index.css';
 
 export default function App() {
-  const { newFile, openFile, saveFile, saveFileAs, autoSave } = useFile();
+  const { newFile, openFile, saveFile, saveFileAs, autoSave, exportToHtml, restoreSession } = useFile();
   const {
     setShowSettings,
     setShowRecentFiles,
@@ -21,18 +21,32 @@ export default function App() {
     setShowToolbar,
     setViewOnlyMode,
     newTab,
+    closeTab,
     recentFiles,
     clearRecentFiles,
+    setShowAbout,
+    setShowDiff,
   } = useAppStore();
   useTheme();
 
-  // Open file passed via URL param (used when opening a new window with a file)
+  // Open file passed via URL param (used when opening a new window with a file),
+  // otherwise restore the previous session.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const fileParam = params.get('file');
     if (fileParam) {
       openFile(decodeURIComponent(fileParam));
+    } else {
+      restoreSession();
     }
+  }, []);
+
+  // Handle "open-file" event from Tauri (for "Open With" / drag-and-drop from OS)
+  useEffect(() => {
+    const unlisten = listen<string>('open-file', ({ payload }) => {
+      if (payload) openFile(payload);
+    });
+    return () => { unlisten.then((fn) => fn()); };
   }, []);
 
   // Sync recent files to the native menu
@@ -51,20 +65,32 @@ export default function App() {
     };
   }, [settings.autoSave, settings.autoSaveInterval]);
 
-  // Handle window close — prompt for unsaved changes
+  // Handle window close — prompt for unsaved changes across all tabs
   useEffect(() => {
     const win = getCurrentWindow();
     const unlisten = win.onCloseRequested(async (event) => {
-      const dirty = useAppStore.getState().isDirty;
-      if (dirty) {
+      const state = useAppStore.getState();
+      const dirtyTabs = state.tabs.filter((t) => t.isDirty);
+      if (dirtyTabs.length > 0) {
         event.preventDefault();
-        const save = await ask('You have unsaved changes. Save before closing?', {
-          title: 'Unsaved Changes',
-          kind: 'warning',
-          okLabel: 'Save',
-          cancelLabel: 'Discard',
-        });
-        if (save) await saveFile();
+        const tabNames = dirtyTabs
+          .map((t) => (t.filePath ? t.filePath.split(/[/\\]/).pop() : 'Untitled'))
+          .join(', ');
+        const save = await ask(
+          `You have unsaved changes in: ${tabNames}. Save before closing?`,
+          {
+            title: 'Unsaved Changes',
+            kind: 'warning',
+            okLabel: 'Save All',
+            cancelLabel: 'Discard All',
+          }
+        );
+        if (save) {
+          for (const tab of dirtyTabs) {
+            state.activateTab(tab.id);
+            await saveFile();
+          }
+        }
         await win.destroy();
       }
     });
@@ -104,6 +130,11 @@ export default function App() {
         case 'theme_dark':            updateSettings({ theme: 'dark' }); break;
         case 'theme_solarized_light': updateSettings({ theme: 'solarized-light' }); break;
         case 'theme_solarized_dark':  updateSettings({ theme: 'solarized-dark' }); break;
+        case 'about':             setShowAbout(true); break;
+        case 'donate':            setShowAbout(true); break;
+        case 'export_html':       exportToHtml(); break;
+        case 'toggle_diff':       setShowDiff(!useAppStore.getState().showDiff); break;
+        case 'export_pdf':        window.print(); break;
       }
     });
     return () => { unlisten.then((fn) => fn()); };
@@ -111,7 +142,7 @@ export default function App() {
 
   // Keyboard shortcuts
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const handler = async (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) return;
       if (e.key === 'n' && !e.shiftKey) { e.preventDefault(); newFile(); }
@@ -132,6 +163,20 @@ export default function App() {
         const current = useAppStore.getState().settings.theme;
         const idx = themes.indexOf(current as any);
         updateSettings({ theme: themes[(idx + 1) % themes.length] });
+      }
+      if (e.key === 'w') {
+        e.preventDefault();
+        const state = useAppStore.getState();
+        const tab = state.tabs.find((t) => t.id === state.activeTabId);
+        if (tab?.isDirty) {
+          const { ask: askDialog } = await import('@tauri-apps/plugin-dialog');
+          const saveBefore = await askDialog(
+            'This tab has unsaved changes. Save before closing?',
+            { title: 'Unsaved Changes', kind: 'warning', okLabel: 'Save', cancelLabel: 'Discard' }
+          );
+          if (saveBefore) await saveFile();
+        }
+        closeTab(state.activeTabId);
       }
     };
     window.addEventListener('keydown', handler);

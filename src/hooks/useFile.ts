@@ -45,25 +45,53 @@ export function useFile() {
 
   const checkUnsavedChanges = async (): Promise<boolean> => {
     if (!isDirty) return true;
-    const answer = await ask('You have unsaved changes. Do you want to save before continuing?', {
+
+    // First ask: Save or continue without saving?
+    const save_ = await ask('You have unsaved changes. Save before continuing?', {
       title: 'Unsaved Changes',
       kind: 'warning',
       okLabel: 'Save',
-      cancelLabel: 'Discard',
+      cancelLabel: "Don't Save",
     });
-    if (answer) await saveFile();
-    return true;
+
+    if (save_) {
+      await saveFile();
+      return true;
+    }
+
+    // Ask for confirmation before discarding
+    const discard = await ask('Discard unsaved changes and continue?', {
+      title: 'Confirm Discard',
+      kind: 'warning',
+      okLabel: 'Discard',
+      cancelLabel: 'Cancel',
+    });
+
+    return discard; // false = user cancelled
   };
 
   const newFile = async () => {
-    await checkUnsavedChanges();
-    setContent('');
-    setFilePath(null);
-    setDirty(false);
+    const state = useAppStore.getState();
+    const currentTab = state.tabs.find((t) => t.id === state.activeTabId);
+
+    // If current tab is empty untitled, just reset it
+    if (!currentTab?.filePath && !currentTab?.content && !currentTab?.isDirty) {
+      setContent('');
+      setFilePath(null);
+      setDirty(false);
+      useAppStore.getState().setTabMode('edit');
+      return;
+    }
+
+    const proceed = await checkUnsavedChanges();
+    if (!proceed) return;
+    newTab();
+    useAppStore.getState().setTabMode('edit');
   };
 
   const openFile = async (path?: string) => {
-    await checkUnsavedChanges();
+    const proceed = await checkUnsavedChanges();
+    if (!proceed) return;
     let targetPath = path;
     if (!targetPath) {
       const selected = await open({
@@ -79,6 +107,8 @@ export function useFile() {
       setFilePath(targetPath);
       setDirty(false);
       addRecentFile(targetPath);
+      useAppStore.getState().setTabMode('preview'); // open files in preview mode
+      useAppStore.getState().setSavedContent(text);  // track saved state
     } catch (e) {
       if (String(e) !== 'Error: No file selected') {
         await message(`Failed to open file: ${e}`, { title: 'Error', kind: 'error' });
@@ -96,6 +126,8 @@ export function useFile() {
       setFilePath(path);
       setDirty(false);
       addRecentFile(path);
+      useAppStore.getState().setTabMode('preview');
+      useAppStore.getState().setSavedContent(text);
     } catch (e) {
       if (String(e) !== 'Error: No file selected') {
         await message(`Failed to open file: ${e}`, { title: 'Error', kind: 'error' });
@@ -121,6 +153,7 @@ export function useFile() {
       try {
         await writeTextFile(filePath, content);
         setDirty(false);
+        useAppStore.getState().setSavedContent(content); // track saved state
       } catch (e) {
         const detail = isPermissionError(e)
           ? 'Permission denied by the OS. The file may be read-only or owned by another user.\n\nUse Save As to write to a different location.'
@@ -143,6 +176,7 @@ export function useFile() {
       setFilePath(savePath);
       setDirty(false);
       addRecentFile(savePath);
+      useAppStore.getState().setSavedContent(content);
     } catch (e) {
       await message(`Failed to save file: ${e}`, { title: 'Error', kind: 'error' });
     }
@@ -153,8 +187,76 @@ export function useFile() {
       try {
         await writeTextFile(filePath, content);
         setDirty(false);
+        useAppStore.getState().setSavedContent(content);
       } catch {
         // silent
+      }
+    }
+  };
+
+  const exportToHtml = async () => {
+    const { marked } = await import('marked');
+    const html = await marked.parse(content);
+    const title = filePath
+      ? filePath.split(/[/\\]/).pop()?.replace(/\.[^.]+$/, '') ?? 'Untitled'
+      : 'Untitled';
+    const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${title}</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #333; }
+pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow: auto; }
+code { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.9em; }
+blockquote { border-left: 4px solid #ddd; margin: 0; padding: 0 16px; color: #666; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; }
+th { background: #f6f8fa; }
+</style>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+    const savePath = await save({
+      filters: [{ name: 'HTML', extensions: ['html'] }],
+      defaultPath: (filePath?.replace(/\.[^.]+$/, '') || 'untitled') + '.html',
+    });
+    if (!savePath) return;
+    await writeTextFile(savePath, fullHtml);
+    await message('Exported successfully!', { title: 'Export', kind: 'info' });
+  };
+
+  const restoreSession = async () => {
+    const store = useAppStore.getState();
+    const sessionTabs = store.sessionTabs;
+    if (!sessionTabs || sessionTabs.length === 0) return;
+
+    let isFirst = true;
+    for (const sessionTab of sessionTabs) {
+      if (!isFirst) {
+        newTab();
+      }
+      isFirst = false;
+
+      if (sessionTab.filePath) {
+        try {
+          const text = await readWithFallback(sessionTab.filePath);
+          setContent(text);
+          setFilePath(sessionTab.filePath);
+          setDirty(false);
+          useAppStore.getState().setSavedContent(text);
+          useAppStore.getState().setTabMode(sessionTab.mode || 'preview');
+        } catch {
+          // File no longer exists, skip
+        }
+      } else if (sessionTab.content) {
+        setContent(sessionTab.content);
+        setFilePath(null);
+        setDirty(sessionTab.isDirty || false);
+        useAppStore.getState().setSavedContent(sessionTab.savedContent || '');
+        useAppStore.getState().setTabMode(sessionTab.mode || 'edit');
       }
     }
   };
@@ -168,5 +270,7 @@ export function useFile() {
     saveFileAs,
     autoSave,
     checkUnsavedChanges,
+    exportToHtml,
+    restoreSession,
   };
 }

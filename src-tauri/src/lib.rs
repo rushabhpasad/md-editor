@@ -76,17 +76,21 @@ pub fn run() {
             let recent_submenu_clone = recent_submenu.clone();
 
             let file_menu = {
-                let new_file = MenuItem::with_id(handle, "new", "New File", true, Some("CmdOrCtrl+N"))?;
-                let new_tab  = MenuItem::with_id(handle, "new_tab", "New Tab", true, Some("CmdOrCtrl+Shift+N"))?;
-                let open     = MenuItem::with_id(handle, "open", "Open...", true, Some("CmdOrCtrl+O"))?;
-                let sep1     = PredefinedMenuItem::separator(handle)?;
-                let save     = MenuItem::with_id(handle, "save", "Save", true, Some("CmdOrCtrl+S"))?;
-                let save_as  = MenuItem::with_id(handle, "save_as", "Save As...", true, Some("CmdOrCtrl+Shift+S"))?;
-                let sep2     = PredefinedMenuItem::separator(handle)?;
-                let quit     = PredefinedMenuItem::quit(handle, Some("Quit"))?;
+                let new_file    = MenuItem::with_id(handle, "new", "New File", true, Some("CmdOrCtrl+N"))?;
+                let new_tab     = MenuItem::with_id(handle, "new_tab", "New Tab", true, Some("CmdOrCtrl+Shift+N"))?;
+                let open        = MenuItem::with_id(handle, "open", "Open...", true, Some("CmdOrCtrl+O"))?;
+                let sep1        = PredefinedMenuItem::separator(handle)?;
+                let save        = MenuItem::with_id(handle, "save", "Save", true, Some("CmdOrCtrl+S"))?;
+                let save_as     = MenuItem::with_id(handle, "save_as", "Save As...", true, Some("CmdOrCtrl+Shift+S"))?;
+                let sep_export  = PredefinedMenuItem::separator(handle)?;
+                let export_html = MenuItem::with_id(handle, "export_html", "Export as HTML...", true, None::<&str>)?;
+                let export_pdf  = MenuItem::with_id(handle, "export_pdf", "Export as PDF (Print)...", true, None::<&str>)?;
+                let export_submenu = Submenu::with_items(handle, "Export", true, &[&export_html, &export_pdf])?;
+                let sep2        = PredefinedMenuItem::separator(handle)?;
+                let quit        = PredefinedMenuItem::quit(handle, Some("Quit"))?;
                 Submenu::with_items(handle, "File", true, &[
                     &new_file, &new_tab, &open, &recent_submenu, &sep1,
-                    &save, &save_as, &sep2, &quit,
+                    &save, &save_as, &sep_export, &export_submenu, &sep2, &quit,
                 ])?
             };
 
@@ -113,6 +117,7 @@ pub fn run() {
                 let toggle_toolbar     = MenuItem::with_id(handle, "toggle_toolbar", "Toggle Toolbar", true, None::<&str>)?;
                 let toggle_scroll_sync = MenuItem::with_id(handle, "toggle_scroll_sync", "Toggle Scroll Sync", true, None::<&str>)?;
                 let view_only          = MenuItem::with_id(handle, "view_only_mode", "View Only Mode", true, Some("CmdOrCtrl+Shift+R"))?;
+                let toggle_diff        = MenuItem::with_id(handle, "toggle_diff", "Toggle Diff View", true, None::<&str>)?;
                 let sep1               = PredefinedMenuItem::separator(handle)?;
                 let increase_font      = MenuItem::with_id(handle, "increase_font", "Increase Font", true, Some("CmdOrCtrl+Equal"))?;
                 let decrease_font      = MenuItem::with_id(handle, "decrease_font", "Decrease Font", true, Some("CmdOrCtrl+Minus"))?;
@@ -127,14 +132,15 @@ pub fn run() {
                 ])?;
                 Submenu::with_items(handle, "View", true, &[
                     &toggle_editor, &toggle_preview, &toggle_toolbar, &toggle_scroll_sync,
-                    &view_only, &sep1,
+                    &view_only, &toggle_diff, &sep1,
                     &increase_font, &decrease_font, &reset_font, &sep2, &theme_submenu,
                 ])?
             };
 
             let help_menu = {
-                let about = PredefinedMenuItem::about(handle, Some("About"), None)?;
-                Submenu::with_items(handle, "Help", true, &[&about])?
+                let about  = MenuItem::with_id(handle, "about", "About MD Editor", true, None::<&str>)?;
+                let donate = MenuItem::with_id(handle, "donate", "Donate / Support...", true, None::<&str>)?;
+                Submenu::with_items(handle, "Help", true, &[&about, &donate])?
             };
 
             let menu = Menu::with_items(handle, &[&file_menu, &edit_menu, &view_menu, &help_menu])?;
@@ -150,6 +156,16 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![get_app_version, update_recent_files])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let tauri::RunEvent::Opened { urls } = event {
+                for url in urls {
+                    let path_str = url.path().to_string();
+                    if !path_str.is_empty() {
+                        let _ = app_handle.emit("open-file", path_str);
+                    }
+                }
+            }
+        });
 }

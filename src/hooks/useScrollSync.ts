@@ -4,12 +4,14 @@ import { useAppStore } from '../store/appStore';
 const SYNC_BUFFER = 0.001; // don't sync if scroll positions are within 0.2% of each other
 
 export function useScrollSync() {
-  const { settings } = useAppStore();
+  const { tabs, activeTabId } = useAppStore();
+  const activeTab = tabs.find((t) => t.id === activeTabId);
+  const scrollSyncEnabled = activeTab?.scrollSync ?? true;
   const isSyncingRef = useRef(false);
 
   const syncFromEditor = useCallback(
     (editorEl: HTMLElement, previewEl: HTMLElement) => {
-      if (!settings.scrollSync || isSyncingRef.current) return;
+      if (!scrollSyncEnabled || isSyncingRef.current) return;
 
       const srcMax = editorEl.scrollHeight - editorEl.clientHeight || 1;
       const dstMax = previewEl.scrollHeight - previewEl.clientHeight || 1;
@@ -22,12 +24,12 @@ export function useScrollSync() {
       previewEl.scrollTop = srcPct * dstMax;
       requestAnimationFrame(() => { isSyncingRef.current = false; });
     },
-    [settings.scrollSync]
+    [scrollSyncEnabled]
   );
 
   const syncFromPreview = useCallback(
     (previewEl: HTMLElement, editorEl: HTMLElement) => {
-      if (!settings.scrollSync || isSyncingRef.current) return;
+      if (!scrollSyncEnabled || isSyncingRef.current) return;
 
       const srcMax = previewEl.scrollHeight - previewEl.clientHeight || 1;
       const dstMax = editorEl.scrollHeight - editorEl.clientHeight || 1;
@@ -40,7 +42,7 @@ export function useScrollSync() {
       editorEl.scrollTop = srcPct * dstMax;
       requestAnimationFrame(() => { isSyncingRef.current = false; });
     },
-    [settings.scrollSync]
+    [scrollSyncEnabled]
   );
 
   return { syncFromEditor, syncFromPreview };
