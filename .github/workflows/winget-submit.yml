@@ -1,0 +1,34 @@
+name: Submit to winget (first-time only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to submit (e.g. 1.0.4)'
+        required: true
+        type: string
+
+jobs:
+  submit:
+    runs-on: windows-latest
+    steps:
+      - name: Submit package to winget-pkgs
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          $version = "${{ inputs.version }}"
+          $msiUrl = "https://github.com/rushabhpasad/md-editor/releases/download/v${version}/MD.Editor_${version}_x64_en-US.msi"
+
+          winget install Microsoft.WingetCreate --silent --accept-source-agreements
+          wingetcreate new $msiUrl `
+            --id "rushabhpasad.MDEditor" `
+            --name "MD Editor" `
+            --publisher "rushabhpasad" `
+            --publisherUrl "https://github.com/rushabhpasad" `
+            --version $version `
+            --description "Lightweight cross-platform desktop Markdown editor with live split-pane preview" `
+            --homepage "https://github.com/rushabhpasad/md-editor" `
+            --license "MIT" `
+            --licenseUrl "https://github.com/rushabhpasad/md-editor/blob/main/LICENSE" `
+            --submit `
+            --token $env:WINGET_TOKEN
