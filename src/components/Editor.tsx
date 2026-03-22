@@ -226,6 +226,36 @@ export function Editor({ previewRef }: EditorProps) {
       if (!view) return;
       openSearchPanel(view);
     };
+
+    (window as any).__editorPrefixLines = (prefix: string) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const { from, to } = view.state.selection.main;
+      const startLine = view.state.doc.lineAt(from);
+      const endLine = view.state.doc.lineAt(to);
+
+      const changes = [];
+      for (let lineNum = startLine.number; lineNum <= endLine.number; lineNum++) {
+        const line = view.state.doc.line(lineNum);
+        changes.push({ from: line.from, to: line.from, insert: prefix });
+      }
+
+      view.dispatch({ changes });
+      view.focus();
+    };
+
+    (window as any).__editorWrapBlock = (fenceBefore: string, fenceAfter: string, placeholder: string) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const { from, to } = view.state.selection.main;
+      const selected = view.state.doc.sliceString(from, to);
+      const text = selected || placeholder;
+      view.dispatch({
+        changes: { from, to, insert: `${fenceBefore}\n${text}\n${fenceAfter}` },
+        selection: { anchor: from + fenceBefore.length + 1, head: from + fenceBefore.length + 1 + text.length },
+      });
+      view.focus();
+    };
   }, []);
 
   return (

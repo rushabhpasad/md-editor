@@ -9,22 +9,40 @@ import { StatusBar } from './StatusBar';
 import { Settings } from './Settings';
 import { RecentFiles } from './RecentFiles';
 import { DragDropOverlay } from './DragDropOverlay';
+import { About } from './About';
+import { ExportDialog } from './ExportDialog';
+import { DiffViewer } from './DiffViewer';
 import { useAppStore } from '../store/appStore';
 
 export function Layout() {
   const {
-    showEditor,
-    showPreview,
+    tabs,
+    activeTabId,
     showToolbar,
     showSettings,
     showRecentFiles,
     viewOnlyMode,
   } = useAppStore();
+  // Read new modal state; gracefully fall back if Agent 1 hasn't merged yet
+  const store = useAppStore() as any;
+  const showAbout: boolean = store.showAbout ?? false;
+  const showExport: boolean = store.showExport ?? false;
+  const showDiff: boolean = store.showDiff ?? false;
+
   const previewRef = useRef<HTMLDivElement | null>(null);
 
-  // In view-only mode: always show only the preview, no editor
-  const effectiveShowEditor = viewOnlyMode ? false : showEditor;
-  const effectiveShowPreview = viewOnlyMode ? true : showPreview;
+  // Read per-tab mode from active tab
+  const activeTab = tabs.find(t => t.id === activeTabId);
+  const tabMode: 'edit' | 'preview' | 'split' = (activeTab as any)?.mode ?? 'split';
+
+  // Determine what to show based on tab mode (viewOnlyMode overrides to preview only)
+  // Fall back to legacy showEditor/showPreview flags if tab mode resolves to split (default)
+  // so existing behaviour is preserved before Agent 1's store changes are in place.
+  const resolvedShowEditor = tabMode === 'edit' || tabMode === 'split';
+  const resolvedShowPreview = tabMode === 'preview' || tabMode === 'split';
+
+  const effectiveShowEditor = viewOnlyMode ? false : resolvedShowEditor;
+  const effectiveShowPreview = viewOnlyMode ? true : resolvedShowPreview;
 
   return (
     <div
@@ -62,6 +80,9 @@ export function Layout() {
       <StatusBar />
       {showSettings && <Settings />}
       {showRecentFiles && <RecentFiles />}
+      {showAbout && <About />}
+      {showExport && <ExportDialog />}
+      {showDiff && <DiffViewer />}
       <DragDropOverlay />
     </div>
   );
