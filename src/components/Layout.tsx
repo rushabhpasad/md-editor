@@ -13,6 +13,7 @@ import { DragDropOverlay } from './DragDropOverlay';
 import { About } from './About';
 import { ExportDialog } from './ExportDialog';
 import { DiffViewer } from './DiffViewer';
+import { Dashboard } from './Dashboard';
 import { useAppStore } from '../store/appStore';
 
 export function Layout() {
@@ -44,6 +45,19 @@ export function Layout() {
 
   const effectiveShowEditor = viewOnlyMode ? false : resolvedShowEditor;
   const effectiveShowPreview = viewOnlyMode ? true : resolvedShowPreview;
+
+  // No tabs open — show the dashboard/welcome screen
+  if (tabs.length === 0) {
+    return (
+      <div style={{ height: '100vh', overflow: 'hidden', backgroundColor: 'var(--color-app-bg)', color: 'var(--color-app-text)' }}>
+        <TitleBar />
+        <div style={{ height: 'calc(100vh - 36px)' }}>
+          <Dashboard />
+        </div>
+        {showSettings && <Settings />}
+      </div>
+    );
+  }
 
   return (
     <div

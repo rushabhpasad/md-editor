@@ -103,7 +103,7 @@ pub fn run() {
                 let open        = MenuItem::with_id(handle, "open", "Open...", true, Some("CmdOrCtrl+O"))?;
                 let sep1        = PredefinedMenuItem::separator(handle)?;
                 let save        = MenuItem::with_id(handle, "save", "Save", true, Some("CmdOrCtrl+S"))?;
-                let save_as     = MenuItem::with_id(handle, "save_as", "Save As...", true, Some("CmdOrCtrl+Shift+S"))?;
+                let save_as     = MenuItem::with_id(handle, "save_as", "Save As...", true, None::<&str>)?;
                 let sep2        = PredefinedMenuItem::separator(handle)?;
                 let export_html = MenuItem::with_id(handle, "export_html", "Export as HTML...", true, None::<&str>)?;
                 let export_pdf  = MenuItem::with_id(handle, "export_pdf", "Export as PDF (Print)...", true, None::<&str>)?;
@@ -132,10 +132,8 @@ pub fn run() {
 
             // ── View menu ────────────────────────────────────────────────────────
             let view_menu = {
-                let toggle_editor      = MenuItem::with_id(handle, "toggle_editor", "Toggle Editor", true, Some("CmdOrCtrl+Shift+E"))?;
-                let toggle_preview     = MenuItem::with_id(handle, "toggle_preview", "Toggle Preview", true, Some("CmdOrCtrl+Shift+P"))?;
+                let cycle_view         = MenuItem::with_id(handle, "cycle_view", "Cycle View Mode", true, Some("CmdOrCtrl+Shift+V"))?;
                 let toggle_toolbar     = MenuItem::with_id(handle, "toggle_toolbar", "Toggle Toolbar", true, None::<&str>)?;
-                let toggle_scroll_sync = MenuItem::with_id(handle, "toggle_scroll_sync", "Toggle Scroll Sync", true, None::<&str>)?;
                 let view_only          = MenuItem::with_id(handle, "view_only_mode", "View Only Mode", true, Some("CmdOrCtrl+Shift+R"))?;
                 let toggle_diff        = MenuItem::with_id(handle, "toggle_diff", "Show Changes", true, None::<&str>)?;
                 let sep1               = PredefinedMenuItem::separator(handle)?;
@@ -151,7 +149,7 @@ pub fn run() {
                     &theme_light, &theme_dark, &theme_sol_light, &theme_sol_dark,
                 ])?;
                 Submenu::with_items(handle, "View", true, &[
-                    &toggle_editor, &toggle_preview, &toggle_toolbar, &toggle_scroll_sync,
+                    &cycle_view, &toggle_toolbar,
                     &view_only, &toggle_diff, &sep1,
                     &increase_font, &decrease_font, &reset_font, &sep2, &theme_submenu,
                 ])?

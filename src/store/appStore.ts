@@ -193,17 +193,20 @@ export const useAppStore = create<AppState>()(
 
       closeTab: (id) =>
         set((state) => {
-          if (state.tabs.length <= 1) {
-            // Reset to empty instead of closing the last tab
+          const newTabs = state.tabs.filter((t) => t.id !== id);
+          if (newTabs.length === 0) {
+            // All tabs closed — show dashboard
             return {
+              tabs: [],
+              activeTabId: '',
               content: '',
               filePath: null,
               isDirty: false,
-              tabs: [{ id: state.activeTabId, content: '', filePath: null, isDirty: false, mode: 'split', scrollSync: true, savedContent: '' }],
+              cursorLine: 1,
+              cursorCol: 1,
             };
           }
           const idx = state.tabs.findIndex((t) => t.id === id);
-          const newTabs = state.tabs.filter((t) => t.id !== id);
           if (id !== state.activeTabId) {
             return { tabs: newTabs };
           }
