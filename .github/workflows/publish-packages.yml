@@ -12,6 +12,9 @@ on:
 #                    and rushabhpasad/scoop-bucket
 #   WINGET_TOKEN   — PAT with `public_repo` scope (for winget PR)
 
+permissions:
+  contents: read
+
 jobs:
   homebrew:
     name: Update Homebrew Tap
@@ -20,67 +23,55 @@ jobs:
       - name: Download DMGs and compute SHA256
         env:
           VERSION: ${{ github.event.release.tag_name }}
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           VERSION_NUM="${VERSION#v}"
-          echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_ENV
+          echo "VERSION_NUM=${VERSION_NUM}" >> "$GITHUB_ENV"
 
           ARM_URL="https://github.com/rushabhpasad/md-editor/releases/download/${VERSION}/MD.Editor_${VERSION_NUM}_aarch64.dmg"
           X64_URL="https://github.com/rushabhpasad/md-editor/releases/download/${VERSION}/MD.Editor_${VERSION_NUM}_x64.dmg"
-          echo "ARM_URL=${ARM_URL}" >> $GITHUB_ENV
-          echo "X64_URL=${X64_URL}" >> $GITHUB_ENV
+          echo "ARM_URL=${ARM_URL}" >> "$GITHUB_ENV"
+          echo "X64_URL=${X64_URL}" >> "$GITHUB_ENV"
 
           curl -fsSL "$ARM_URL" -o arm.dmg
           curl -fsSL "$X64_URL" -o x64.dmg
-          echo "ARM_SHA=$(shasum -a 256 arm.dmg | awk '{print $1}')" >> $GITHUB_ENV
-          echo "X64_SHA=$(shasum -a 256 x64.dmg | awk '{print $1}')" >> $GITHUB_ENV
+          echo "ARM_SHA=$(shasum -a 256 arm.dmg | awk '{print $1}')" >> "$GITHUB_ENV"
+          echo "X64_SHA=$(shasum -a 256 x64.dmg | awk '{print $1}')" >> "$GITHUB_ENV"
 
       - name: Push updated cask to homebrew-tap
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          git clone https://x-access-token:${GH_TOKEN}@github.com/rushabhpasad/homebrew-tap.git
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/rushabhpasad/homebrew-tap.git"
           cd homebrew-tap
           mkdir -p Casks
 
-          python3 - << 'PYEOF'
-import os
-version   = os.environ["VERSION_NUM"]
-arm_url   = os.environ["ARM_URL"]
-x64_url   = os.environ["X64_URL"]
-arm_sha   = os.environ["ARM_SHA"]
-x64_sha   = os.environ["X64_SHA"]
-
-cask = f'''cask "md-editor" do
-  version "{version}"
-
-  on_arm do
-    url "{arm_url}"
-    sha256 "{arm_sha}"
-  end
-
-  on_intel do
-    url "{x64_url}"
-    sha256 "{x64_sha}"
-  end
-
-  name "MD Editor"
-  desc "Lightweight cross-platform desktop Markdown editor with live split-pane preview"
-  homepage "https://github.com/rushabhpasad/md-editor"
-
-  app "MD Editor.app"
-
-  zap trash: [
-    "~/Library/Application Support/com.rpasad.md-editor",
-    "~/Library/Preferences/com.rpasad.md-editor.plist",
-    "~/Library/Saved Application State/com.rpasad.md-editor.savedState",
-  ]
-end
-'''
-with open("Casks/md-editor.rb", "w") as f:
-    f.write(cask)
-print("Cask written.")
-PYEOF
+          printf '%s\n' \
+            'cask "md-editor" do' \
+            "  version \"${VERSION_NUM}\"" \
+            '' \
+            '  on_arm do' \
+            "    url \"${ARM_URL}\"" \
+            "    sha256 \"${ARM_SHA}\"" \
+            '  end' \
+            '' \
+            '  on_intel do' \
+            "    url \"${X64_URL}\"" \
+            "    sha256 \"${X64_SHA}\"" \
+            '  end' \
+            '' \
+            '  name "MD Editor"' \
+            '  desc "Lightweight cross-platform desktop Markdown editor with live split-pane preview"' \
+            '  homepage "https://github.com/rushabhpasad/md-editor"' \
+            '' \
+            '  app "MD Editor.app"' \
+            '' \
+            '  zap trash: [' \
+            '    "~/Library/Application Support/com.rpasad.md-editor",' \
+            '    "~/Library/Preferences/com.rpasad.md-editor.plist",' \
+            '    "~/Library/Saved Application State/com.rpasad.md-editor.savedState",' \
+            '  ]' \
+            'end' \
+            > Casks/md-editor.rb
 
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
@@ -103,63 +94,52 @@ PYEOF
     name: Update Scoop Bucket
     runs-on: ubuntu-latest
     steps:
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
       - name: Download MSI and compute SHA256
         env:
           VERSION: ${{ github.event.release.tag_name }}
         run: |
           VERSION_NUM="${VERSION#v}"
-          echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_ENV
+          echo "VERSION_NUM=${VERSION_NUM}" >> "$GITHUB_ENV"
 
           MSI_URL="https://github.com/rushabhpasad/md-editor/releases/download/${VERSION}/MD.Editor_${VERSION_NUM}_x64_en-US.msi"
-          echo "MSI_URL=${MSI_URL}" >> $GITHUB_ENV
+          echo "MSI_URL=${MSI_URL}" >> "$GITHUB_ENV"
 
           curl -fsSL "$MSI_URL" -o installer.msi
-          echo "MSI_SHA=$(shasum -a 256 installer.msi | awk '{print $1}')" >> $GITHUB_ENV
+          echo "MSI_SHA=$(shasum -a 256 installer.msi | awk '{print $1}')" >> "$GITHUB_ENV"
 
       - name: Push updated manifest to scoop-bucket
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          git clone https://x-access-token:${GH_TOKEN}@github.com/rushabhpasad/scoop-bucket.git
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/rushabhpasad/scoop-bucket.git"
           cd scoop-bucket
           mkdir -p bucket
 
-          python3 - << 'PYEOF'
-import os, json
-
-version = os.environ["VERSION_NUM"]
-msi_url = os.environ["MSI_URL"]
-msi_sha = os.environ["MSI_SHA"]
-
-manifest = {
-  "version": version,
-  "description": "Lightweight cross-platform desktop Markdown editor with live split-pane preview",
-  "homepage": "https://github.com/rushabhpasad/md-editor",
-  "license": "MIT",
-  "architecture": {
-    "64bit": {
-      "url": msi_url,
-      "hash": msi_sha
-    }
-  },
-  "shortcuts": [["MD Editor.exe", "MD Editor"]],
-  "checkver": {
-    "github": "https://github.com/rushabhpasad/md-editor"
-  },
-  "autoupdate": {
-    "architecture": {
-      "64bit": {
-        "url": f"https://github.com/rushabhpasad/md-editor/releases/download/v$version/MD.Editor_$version_x64_en-US.msi"
-      }
-    }
-  }
-}
-
-with open("bucket/md-editor.json", "w") as f:
-    json.dump(manifest, f, indent=2)
-    f.write("\n")
-print("Manifest written.")
-PYEOF
+          jq -n \
+            --arg version  "$VERSION_NUM" \
+            --arg url      "$MSI_URL" \
+            --arg hash     "$MSI_SHA" \
+            '{
+              version:     $version,
+              description: "Lightweight cross-platform desktop Markdown editor with live split-pane preview",
+              homepage:    "https://github.com/rushabhpasad/md-editor",
+              license:     "MIT",
+              architecture: {
+                "64bit": { url: $url, hash: $hash }
+              },
+              shortcuts: [["MD Editor.exe", "MD Editor"]],
+              checkver: { github: "https://github.com/rushabhpasad/md-editor" },
+              autoupdate: {
+                architecture: {
+                  "64bit": {
+                    url: "https://github.com/rushabhpasad/md-editor/releases/download/v$version/MD.Editor_$version_x64_en-US.msi"
+                  }
+                }
+              }
+            }' > bucket/md-editor.json
 
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
