@@ -6,20 +6,25 @@ A lightweight, cross-platform desktop Markdown editor with a live split-pane pre
 
 ## Features
 
-- **Split-pane layout** — resizable editor and preview side by side, collapsible to either side
-- **Tabs** — open multiple documents simultaneously
+- **Split-pane layout** — resizable editor and preview side by side; toggle between Edit, Split, and Preview modes per tab
+- **Tabs** — open multiple documents simultaneously, each with its own view mode and scroll sync state
 - **Live preview** — GitHub Flavored Markdown rendered in real time (150 ms debounce)
 - **Syntax highlighting** — editor syntax coloring for Markdown; fenced code blocks highlighted via highlight.js
-- **Formatting toolbar** — one-click bold, italic, strikethrough, headings, code, links, images, lists, blockquotes, tables
+- **Formatting toolbar** — one-click bold, italic, headings, code blocks, links, images, lists, blockquotes, tables; heading/list buttons correctly apply to selected lines
 - **Keyboard shortcuts** — full set of shortcuts for all common actions (see table below)
 - **Four themes** — Light, Dark, Solarized Light, Solarized Dark; auto-detects system preference
 - **Persistent settings** — font family/size, line height, word wrap, scroll sync, auto-save, and more
-- **Bidirectional scroll sync** — editor and preview scroll together proportionally
-- **File management** — open, save, save-as, recent files (last 10), unsaved-changes guard, drag & drop
+- **Per-tab scroll sync (⇅ Sync)** — editor and preview scroll together; toggle independently per tab
+- **File management** — open, save, save-as, recent files (last 10), unsaved-changes guard with Save/Discard/Cancel, drag & drop
+- **"Open With" support** — set MD Editor as the default app for `.md` and `.markdown` files
+- **Session restore** — reopens last-open tabs (including untitled documents) on next launch
+- **Export** — Export to HTML (standalone file with styles) or PDF (via system print dialog)
+- **Show Changes** — diff view comparing current content against the last-saved version
 - **Multi-window** — open files in separate windows
 - **View-only mode** — read-only preview without the editor
 - **Auto-save** — optional timed auto-save to the current file
 - **Status bar** — live word count, character count, cursor position, file encoding
+- **Donate / Sponsor** — support open source development via [GitHub Sponsors](https://github.com/sponsors/rushabhpasad)
 
 ## Tech Stack
 
@@ -156,11 +161,12 @@ Distributable bundles are written to `src-tauri/target/release/bundle/`.
 
 | Action | macOS | Windows / Linux |
 |---|---|---|
-| New File | Cmd+N | Ctrl+N |
+| New File (new tab) | Cmd+N | Ctrl+N |
 | New Tab | Cmd+Shift+N | Ctrl+Shift+N |
 | Open | Cmd+O | Ctrl+O |
 | Save | Cmd+S | Ctrl+S |
 | Save As | Cmd+Shift+S | Ctrl+Shift+S |
+| Close Tab | Cmd+W | Ctrl+W |
 | Find | Cmd+F | Ctrl+F |
 | Bold | Cmd+B | Ctrl+B |
 | Italic | Cmd+I | Ctrl+I |
@@ -191,11 +197,14 @@ md-editor/
     ├── components/
     │   ├── Editor.tsx        # CodeMirror 6 instance
     │   ├── Preview.tsx       # Live HTML preview
-    │   ├── Toolbar.tsx       # Formatting buttons
+    │   ├── Toolbar.tsx       # Formatting buttons + mode toggle + sync
     │   ├── TabBar.tsx        # Tab management UI
     │   ├── StatusBar.tsx     # Word/char count, cursor, encoding
     │   ├── Settings.tsx      # Preferences modal
     │   ├── RecentFiles.tsx   # Recent files modal
+    │   ├── About.tsx         # About dialog (credits + donate)
+    │   ├── ExportDialog.tsx  # Export to HTML/PDF modal
+    │   ├── DiffViewer.tsx    # Show changes since last save
     │   ├── DragDropOverlay.tsx # Drag & drop handler
     │   └── Layout.tsx        # Split-pane shell
     ├── hooks/
@@ -227,6 +236,25 @@ Open via **Edit → Preferences** or `Cmd/Ctrl+,`.
 | Auto Save Interval | 30s |
 | Show Line Numbers | On |
 | Spell Check | Off |
+
+## Sample Files
+
+The `samples/` directory contains ready-to-open Markdown files for exploring the editor's features:
+
+| File | Contents |
+|---|---|
+| `samples/welcome.md` | Feature overview with tables, code blocks, and checkboxes |
+| `samples/code-showcase.md` | Syntax highlighting demo in 6 languages |
+| `samples/writing-sample.md` | Long-form prose demonstrating typography |
+| `samples/features-overview.md` | App-store-style feature sheet |
+
+## Support
+
+If MD Editor is useful to you, consider [sponsoring development](https://github.com/sponsors/rushabhpasad) — it helps keep the project free and open source.
+
+## Credits
+
+Created by **Rushabh Pasad** · Built with the help of [Claude](https://claude.ai) (Anthropic)
 
 ## Contributing
 

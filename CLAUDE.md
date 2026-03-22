@@ -24,37 +24,52 @@ A cross-platform desktop Markdown editor built with **Tauri v2** (Rust backend) 
 
 ```
 md-editor/
+├── .github/
+│   ├── workflows/              # CI/CD: release.yml, publish-packages.yml
+│   └── FUNDING.yml             # GitHub Sponsors config
+│
+├── samples/                    # Sample .md files for screenshots and demos
+│   ├── welcome.md
+│   ├── code-showcase.md
+│   ├── writing-sample.md
+│   └── features-overview.md
+│
 ├── src-tauri/                  # Rust / Tauri backend
 │   ├── src/
-│   │   ├── lib.rs              # App entry: plugins, native menu, menu-event emitter
+│   │   ├── lib.rs              # App entry: plugins, native menu, menu-event emitter, RunEvent::Opened handler
 │   │   └── main.rs             # Binary entry point (calls lib::run)
 │   ├── capabilities/
 │   │   └── default.json        # Tauri capability permissions (fs, dialog, opener)
 │   ├── Cargo.toml
-│   └── tauri.conf.json         # Window config, bundle targets, product name
+│   └── tauri.conf.json         # Window config, bundle targets, fileAssociations (.md, .markdown)
 │
 ├── src/                        # React frontend
 │   ├── main.tsx                # React root mount
-│   ├── App.tsx                 # Top-level: menu listeners, keyboard shortcuts, auto-save, close guard
+│   ├── App.tsx                 # Top-level: menu listeners, keyboard shortcuts (incl. Cmd+W), auto-save, close guard, session restore
 │   ├── index.css               # Tailwind import + utility class definitions
 │   │
 │   ├── components/
-│   │   ├── Layout.tsx          # Allotment split-pane shell; all structural layout uses inline styles
-│   │   ├── Editor.tsx          # CodeMirror 6 instance; exposes helpers on window.__editor*
+│   │   ├── Layout.tsx          # Allotment split-pane shell; derives show/hide from active tab's mode
+│   │   ├── Editor.tsx          # CodeMirror 6; exposes window.__editor* including __editorPrefixLines, __editorWrapBlock
 │   │   ├── Preview.tsx         # Live HTML preview; manually updates innerHTML to preserve scroll
-│   │   ├── Toolbar.tsx         # 15 formatting buttons; fully inline-styled (no Tailwind dependency)
+│   │   ├── Toolbar.tsx         # Formatting buttons + mode toggle + ⇅ Sync (per-tab) + Show Changes
 │   │   ├── StatusBar.tsx       # Word/char count, cursor Ln/Col, file path; fully inline-styled
 │   │   ├── Settings.tsx        # Preferences modal
-│   │   └── RecentFiles.tsx     # Recent files modal (last 10)
+│   │   ├── RecentFiles.tsx     # Recent files modal (last 10)
+│   │   ├── About.tsx           # Custom About dialog with credits (Rushabh Pasad / Claude) + Donate button
+│   │   ├── ExportDialog.tsx    # Export to HTML or PDF (print dialog)
+│   │   ├── DiffViewer.tsx      # Line-based diff of current vs last-saved content
+│   │   ├── DragDropOverlay.tsx # Drag & drop file handler
+│   │   └── TabBar.tsx          # Tab management UI
 │   │
 │   ├── hooks/
-│   │   ├── useFile.ts          # Open / save / save-as / auto-save via Tauri plugins
+│   │   ├── useFile.ts          # Open / save / save-as / auto-save / exportToHtml / restoreSession
 │   │   ├── useMarkdown.ts      # 150ms debounced marked.js render; resolves relative image paths
 │   │   ├── useTheme.ts         # Applies data-theme attr + dark class to <html>; watches OS preference
-│   │   └── useScrollSync.ts    # Bidirectional scroll sync with 20% buffer to prevent oscillation
+│   │   └── useScrollSync.ts    # Per-tab scroll sync (reads activeTab.scrollSync)
 │   │
 │   ├── store/
-│   │   └── appStore.ts         # Zustand store; settings + recentFiles persisted to localStorage
+│   │   └── appStore.ts         # Zustand store; Tab now has mode/scrollSync/savedContent; session persisted
 │   │
 │   └── styles/
 │       ├── themes.css          # CSS custom properties for all 4 themes
@@ -140,6 +155,10 @@ Only `settings` and `recentFiles` are persisted to `localStorage` (key: `md-edit
 | Add a persistent setting | `src/store/appStore.ts` + `src/components/Settings.tsx` |
 | Change file open/save behavior | `src/hooks/useFile.ts` |
 | Change Tauri permissions | `src-tauri/capabilities/default.json` |
+| Change About dialog content | `src/components/About.tsx` |
+| Change export behavior | `src/hooks/useFile.ts` (exportToHtml) + `src/components/ExportDialog.tsx` |
+| Change diff view | `src/components/DiffViewer.tsx` |
+| Change tab view modes | `src/store/appStore.ts` (TabViewMode type) + `src/components/Layout.tsx` |
 
 ## Rust Backend Notes
 
@@ -191,6 +210,26 @@ Two separate repositories must exist for automated distribution:
 - **Chocolatey** — publish via [chocolatey.org](https://community.chocolatey.org/packages)
 - **Flatpak / Flathub** — submit a manifest to [flathub/flathub](https://github.com/flathub/flathub)
 - **Snap Store** — publish via `snapcraft` CLI
+
+## Tab View Modes
+
+Each tab has a `mode: 'edit' | 'preview' | 'split'` field (exported as `TabViewMode`). `Layout.tsx` derives `effectiveShowEditor` / `effectiveShowPreview` from this field on the active tab. The toolbar cycle button (✎ Edit → ⊟ Split → 👁 Preview) calls `setTabMode()` to rotate through modes. When a file is opened from disk, mode defaults to `'preview'`. New/untitled tabs start in `'edit'` mode.
+
+## Per-Tab Scroll Sync
+
+Each tab has a `scrollSync: boolean` field. `useScrollSync.ts` reads this from the active tab instead of from global settings. The ⇅ Sync toolbar button calls `setTabScrollSync()` to toggle it for the active tab. The global `settings.scrollSync` is still present as the default for new tabs.
+
+## Saved Content / Diff View
+
+Each tab has `savedContent: string` — the content as of the last save (or file open). `useFile.ts` updates `savedContent` after every successful save. The "⊕ Changes" toolbar button (visible when `isDirty`) opens `DiffViewer.tsx` which runs a line-based LCS diff and displays added/removed lines.
+
+## Session Restore
+
+The Zustand `partialize` persists `sessionTabs` — an array of tab snapshots. For named files only the path is stored; for untitled docs the content is stored. On startup, `restoreSession()` in `useFile.ts` iterates the persisted tabs, reads named files from disk, and restores untitled content from the persisted data. Session restore is skipped if the app was opened with a `?file=` URL param.
+
+## "Open With" / macOS File Associations
+
+`tauri.conf.json` registers `.md` and `.markdown` as file types for MD Editor. When the OS opens a file with the app, Tauri emits `RunEvent::Opened { urls }` which the lib.rs run-loop handler converts to an `"open-file"` event with the file path. `App.tsx` listens for this event and calls `openFile(path)`.
 
 ## Common Pitfalls
 
