@@ -149,6 +149,49 @@ Only `settings` and `recentFiles` are persisted to `localStorage` (key: `md-edit
 - Menu is built in `.setup()` using the Tauri v2 menu builder API
 - `app.on_menu_event(|app, event| app.emit("menu-event", event.id()))` is the bridge to the frontend
 
+## Release & Distribution
+
+### Publishing a new version
+
+1. Bump the version in `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml` (all must match)
+2. Commit, push, then push a version tag:
+   ```bash
+   git tag v1.2.3 && git push origin v1.2.3
+   ```
+3. The `release.yml` workflow builds all platforms and creates a **draft** GitHub Release
+4. Review the draft on GitHub, then click **Publish release**
+5. Publishing triggers `publish-packages.yml` which automatically updates:
+   - **Homebrew** cask in `rushabhpasad/homebrew-tap` (Casks/md-editor.rb)
+   - **winget** via a PR to `microsoft/winget-pkgs`
+   - **Scoop** manifest in `rushabhpasad/scoop-bucket` (bucket/md-editor.json)
+
+### Required GitHub Secrets
+
+| Secret | Used by | Purpose |
+|---|---|---|
+| `APPLE_CERTIFICATE` | `release.yml` | Base64-encoded Developer ID Application `.p12` |
+| `APPLE_CERTIFICATE_PASSWORD` | `release.yml` | Password for the `.p12` |
+| `APPLE_SIGNING_IDENTITY` | `release.yml` | `Developer ID Application: Name (TEAMID)` |
+| `APPLE_ID` | `release.yml` | Apple ID email for notarization |
+| `APPLE_PASSWORD` | `release.yml` | App-specific password from appleid.apple.com |
+| `APPLE_TEAM_ID` | `release.yml` | 10-character Apple Team ID |
+| `RELEASE_TOKEN` | `publish-packages.yml` | PAT with `repo` scope on the tap and bucket repos |
+| `WINGET_TOKEN` | `publish-packages.yml` | PAT with `public_repo` scope for winget PR |
+
+### Package manager companion repos
+
+Two separate repositories must exist for automated distribution:
+
+- **`rushabhpasad/homebrew-tap`** — Homebrew custom tap. Must contain a `Casks/` directory. Install: `brew tap rushabhpasad/tap && brew install --cask md-editor`
+- **`rushabhpasad/scoop-bucket`** — Scoop custom bucket. Must contain a `bucket/` directory. Install: `scoop bucket add rushabhpasad https://github.com/rushabhpasad/scoop-bucket && scoop install md-editor`
+
+### Platforms not yet automated (manual submission required)
+
+- **MacPorts** — submit a Portfile to the [MacPorts ports tree](https://github.com/macports/macports-ports)
+- **Chocolatey** — publish via [chocolatey.org](https://community.chocolatey.org/packages)
+- **Flatpak / Flathub** — submit a manifest to [flathub/flathub](https://github.com/flathub/flathub)
+- **Snap Store** — publish via `snapcraft` CLI
+
 ## Common Pitfalls
 
 - **Don't use `isDark` as a plain variable in Editor** — always use `settings.theme` and the `themeCompartment` so dark mode stays reactive
