@@ -1,5 +1,8 @@
 name: Submit to winget (first-time only)
 
+permissions:
+  contents: read
+
 # Creates the three required winget manifest YAMLs and submits a PR to
 # microsoft/winget-pkgs via wingetcreate submit.
 # Delete this workflow after the PR is merged.
