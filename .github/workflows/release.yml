@@ -57,6 +57,19 @@ jobs:
             librsvg2-dev \
             patchelf
 
+      - name: Sync version from tag
+        shell: bash
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          # package.json
+          node -e "const f='package.json',p=JSON.parse(require('fs').readFileSync(f));p.version='${VERSION}';require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+          # tauri.conf.json
+          node -e "const f='src-tauri/tauri.conf.json',p=JSON.parse(require('fs').readFileSync(f));p.version='${VERSION}';require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+          # Cargo.toml — replace only the package version line (first occurrence)
+          sed -i.bak "0,/^version = \".*\"/{s/^version = \".*\"/version = \"${VERSION}\"/}" src-tauri/Cargo.toml && rm -f src-tauri/Cargo.toml.bak
+          echo "Versions set to ${VERSION}"
+
       - name: Install frontend dependencies
         run: npm install
 
