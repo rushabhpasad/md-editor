@@ -31,30 +31,23 @@ async function readWithFallback(path: string): Promise<string> {
 }
 
 export function useFile() {
-  const {
-    content,
-    filePath,
-    isDirty,
-    setContent,
-    setFilePath,
-    setDirty,
-    addRecentFile,
-    newTab,
-    settings,
-  } = useAppStore();
+  const { newTab } = useAppStore();
+
+  // Bug fix: always read filePath/content/isDirty from getState() to avoid
+  // stale closures in menu-event and keyboard listeners registered once at mount.
 
   const checkUnsavedChanges = async (): Promise<boolean> => {
-    if (!isDirty) return true;
+    if (!useAppStore.getState().isDirty) return true;
 
     // First ask: Save or continue without saving?
-    const save_ = await ask('You have unsaved changes. Save before continuing?', {
+    const doSave = await ask('You have unsaved changes. Save before continuing?', {
       title: 'Unsaved Changes',
       kind: 'warning',
       okLabel: 'Save',
       cancelLabel: "Don't Save",
     });
 
-    if (save_) {
+    if (doSave) {
       await saveFile();
       return true;
     }
@@ -76,10 +69,10 @@ export function useFile() {
 
     // If current tab is empty untitled, just reset it
     if (!currentTab?.filePath && !currentTab?.content && !currentTab?.isDirty) {
-      setContent('');
-      setFilePath(null);
-      setDirty(false);
-      useAppStore.getState().setTabMode('edit');
+      state.setContent('');
+      state.setFilePath(null);
+      state.setDirty(false);
+      state.setTabMode('edit');
       return;
     }
 
@@ -103,12 +96,13 @@ export function useFile() {
     }
     try {
       const text = await readWithFallback(targetPath);
-      setContent(text);
-      setFilePath(targetPath);
-      setDirty(false);
-      addRecentFile(targetPath);
-      useAppStore.getState().setTabMode('preview'); // open files in preview mode
-      useAppStore.getState().setSavedContent(text);  // track saved state
+      const state = useAppStore.getState();
+      state.setContent(text);
+      state.setFilePath(targetPath);
+      state.setDirty(false);
+      state.addRecentFile(targetPath);
+      state.setTabMode('preview'); // open files in preview mode
+      state.setSavedContent(text);  // track saved state
     } catch (e) {
       if (String(e) !== 'Error: No file selected') {
         await message(`Failed to open file: ${e}`, { title: 'Error', kind: 'error' });
@@ -117,17 +111,26 @@ export function useFile() {
   };
 
   // Open a file into a new tab without touching the current tab
-  const openFileInNewTab = async (path: string) => {
+  const openFileInNewTab = async (path?: string) => {
+    if (!path) {
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: 'Markdown', extensions: ['md', 'txt', 'markdown'] }],
+      });
+      if (!selected) return;
+      path = selected as string;
+    }
     try {
       const text = await readWithFallback(path);
       newTab();
       // After newTab() the store switches to empty new tab — now populate it
-      setContent(text);
-      setFilePath(path);
-      setDirty(false);
-      addRecentFile(path);
-      useAppStore.getState().setTabMode('preview');
-      useAppStore.getState().setSavedContent(text);
+      const state = useAppStore.getState();
+      state.setContent(text);
+      state.setFilePath(path);
+      state.setDirty(false);
+      state.addRecentFile(path);
+      state.setTabMode('preview');
+      state.setSavedContent(text);
     } catch (e) {
       if (String(e) !== 'Error: No file selected') {
         await message(`Failed to open file: ${e}`, { title: 'Error', kind: 'error' });
@@ -149,11 +152,13 @@ export function useFile() {
   };
 
   const saveFile = async () => {
+    // Read fresh state to avoid stale closure from menu/keyboard listeners
+    const { filePath, content } = useAppStore.getState();
     if (filePath) {
       try {
         await writeTextFile(filePath, content);
-        setDirty(false);
-        useAppStore.getState().setSavedContent(content); // track saved state
+        useAppStore.getState().setDirty(false);
+        useAppStore.getState().setSavedContent(content);
       } catch (e) {
         const detail = isPermissionError(e)
           ? 'Permission denied by the OS. The file may be read-only or owned by another user.\n\nUse Save As to write to a different location.'
@@ -166,6 +171,7 @@ export function useFile() {
   };
 
   const saveFileAs = async () => {
+    const { content, filePath } = useAppStore.getState();
     const savePath = await save({
       filters: [{ name: 'Markdown', extensions: ['md'] }],
       defaultPath: filePath || 'untitled.md',
@@ -173,20 +179,22 @@ export function useFile() {
     if (!savePath) return;
     try {
       await writeTextFile(savePath, content);
-      setFilePath(savePath);
-      setDirty(false);
-      addRecentFile(savePath);
-      useAppStore.getState().setSavedContent(content);
+      const state = useAppStore.getState();
+      state.setFilePath(savePath);
+      state.setDirty(false);
+      state.addRecentFile(savePath);
+      state.setSavedContent(content);
     } catch (e) {
       await message(`Failed to save file: ${e}`, { title: 'Error', kind: 'error' });
     }
   };
 
   const autoSave = async () => {
+    const { settings, filePath, isDirty, content } = useAppStore.getState();
     if (settings.autoSave && filePath && isDirty) {
       try {
         await writeTextFile(filePath, content);
-        setDirty(false);
+        useAppStore.getState().setDirty(false);
         useAppStore.getState().setSavedContent(content);
       } catch {
         // silent
@@ -195,6 +203,9 @@ export function useFile() {
   };
 
   const exportToHtml = async () => {
+    // Read fresh state — not from closure — so we get current content even if
+    // the ExportDialog component has already been unmounted before this runs.
+    const { content, filePath } = useAppStore.getState();
     const { marked } = await import('marked');
     const html = await marked.parse(content);
     const title = filePath
@@ -213,6 +224,7 @@ blockquote { border-left: 4px solid #ddd; margin: 0; padding: 0 16px; color: #66
 table { border-collapse: collapse; width: 100%; }
 th, td { border: 1px solid #ddd; padding: 8px 12px; }
 th { background: #f6f8fa; }
+img { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -243,20 +255,22 @@ ${html}
       if (sessionTab.filePath) {
         try {
           const text = await readWithFallback(sessionTab.filePath);
-          setContent(text);
-          setFilePath(sessionTab.filePath);
-          setDirty(false);
-          useAppStore.getState().setSavedContent(text);
-          useAppStore.getState().setTabMode(sessionTab.mode || 'preview');
+          const s = useAppStore.getState();
+          s.setContent(text);
+          s.setFilePath(sessionTab.filePath);
+          s.setDirty(false);
+          s.setSavedContent(text);
+          s.setTabMode(sessionTab.mode || 'preview');
         } catch {
           // File no longer exists, skip
         }
       } else if (sessionTab.content) {
-        setContent(sessionTab.content);
-        setFilePath(null);
-        setDirty(sessionTab.isDirty || false);
-        useAppStore.getState().setSavedContent(sessionTab.savedContent || '');
-        useAppStore.getState().setTabMode(sessionTab.mode || 'edit');
+        const s = useAppStore.getState();
+        s.setContent(sessionTab.content);
+        s.setFilePath(null);
+        s.setDirty(sessionTab.isDirty || false);
+        s.setSavedContent(sessionTab.savedContent || '');
+        s.setTabMode(sessionTab.mode || 'edit');
       }
     }
   };

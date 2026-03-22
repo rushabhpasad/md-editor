@@ -11,7 +11,7 @@ import { useAppStore } from './store/appStore';
 import './index.css';
 
 export default function App() {
-  const { newFile, openFile, saveFile, saveFileAs, autoSave, exportToHtml, restoreSession } = useFile();
+  const { newFile, openFile, openFileInNewTab, saveFile, saveFileAs, autoSave, exportToHtml, restoreSession } = useFile();
   const {
     setShowSettings,
     setShowRecentFiles,
@@ -86,22 +86,38 @@ export default function App() {
         const tabNames = dirtyTabs
           .map((t) => (t.filePath ? t.filePath.split(/[/\\]/).pop() : 'Untitled'))
           .join(', ');
-        const save = await ask(
+
+        // Step 1: offer to save
+        const doSave = await ask(
           `You have unsaved changes in: ${tabNames}. Save before closing?`,
           {
             title: 'Unsaved Changes',
             kind: 'warning',
             okLabel: 'Save All',
-            cancelLabel: 'Discard All',
+            cancelLabel: "Don't Save",
           }
         );
-        if (save) {
+
+        if (doSave) {
           for (const tab of dirtyTabs) {
             state.activateTab(tab.id);
             await saveFile();
           }
+          await win.destroy();
+        } else {
+          // Step 2: confirm discard — Cancel here keeps the window open
+          const confirmDiscard = await ask(
+            'Discard all unsaved changes and close?',
+            {
+              title: 'Confirm Close',
+              kind: 'warning',
+              okLabel: 'Discard & Close',
+              cancelLabel: 'Keep Open',
+            }
+          );
+          if (confirmDiscard) await win.destroy();
+          // else: user clicked "Keep Open" or dismissed — do nothing, window stays open
         }
-        await win.destroy();
       }
     });
     return () => { unlisten.then((fn) => fn()); };
@@ -121,13 +137,31 @@ export default function App() {
       switch (payload) {
         case 'new':               newFile(); break;
         case 'new_tab':           newTab(); break;
-        case 'open':              openFile(); break;
+        case 'open':              openFileInNewTab(); break;
         case 'save':              saveFile(); break;
         case 'save_as':           saveFileAs(); break;
         case 'preferences':       setShowSettings(true); break;
         case 'recent_files':      setShowRecentFiles(true); break;
         case 'clear_recent':      clearRecentFiles(); break;
-        case 'find':              (window as any).__editorFind?.(); break;
+        case 'find': {
+          const activeTab = useAppStore.getState().tabs.find(
+            (t) => t.id === useAppStore.getState().activeTabId
+          );
+          if ((activeTab as any)?.mode === 'preview') {
+            (window as any).__previewFind?.();
+          } else {
+            (window as any).__editorFind?.();
+          }
+          break;
+        }
+        case 'cycle_view': {
+          const s = useAppStore.getState();
+          const tab = s.tabs.find((t) => t.id === s.activeTabId);
+          const cur: string = (tab as any)?.mode ?? 'split';
+          const next = cur === 'edit' ? 'split' : cur === 'split' ? 'preview' : 'edit';
+          s.setTabMode(next as any);
+          break;
+        }
         case 'toggle_editor':     setShowEditor(!useAppStore.getState().showEditor); break;
         case 'toggle_preview':    setShowPreview(!useAppStore.getState().showPreview); break;
         case 'toggle_toolbar':    setShowToolbar(!useAppStore.getState().showToolbar); break;
@@ -158,9 +192,16 @@ export default function App() {
       if (!mod) return;
       if (e.key === 'n' && !e.shiftKey) { e.preventDefault(); newFile(); }
       if (e.key === 'n' && e.shiftKey)  { e.preventDefault(); newTab(); }
-      if (e.key === 'o' && !e.shiftKey) { e.preventDefault(); openFile(); }
+      if (e.key === 'o' && !e.shiftKey) { e.preventDefault(); openFileInNewTab(); }
       if (e.key === 's' && !e.shiftKey) { e.preventDefault(); saveFile(); }
-      if (e.key === 'S' && e.shiftKey)  { e.preventDefault(); saveFileAs(); }
+      // Cmd+Shift+S: toggle scroll sync for the active tab
+      if (e.key === 'S' && e.shiftKey) {
+        e.preventDefault();
+        const s = useAppStore.getState();
+        const tab = s.tabs.find((t) => t.id === s.activeTabId);
+        const syncOn = (tab as any)?.scrollSync ?? s.settings.scrollSync ?? true;
+        s.setTabScrollSync(!syncOn);
+      }
       if (e.key === ',')                 { e.preventDefault(); setShowSettings(true); }
       if (e.key === '=' || e.key === '+') { e.preventDefault(); updateSettings({ fontSize: Math.min(useAppStore.getState().settings.fontSize + 1, 32) }); }
       if (e.key === '-')                 { e.preventDefault(); updateSettings({ fontSize: Math.max(useAppStore.getState().settings.fontSize - 1, 8) }); }
@@ -168,6 +209,24 @@ export default function App() {
       if (e.key === 'P' && e.shiftKey)   { e.preventDefault(); setShowPreview(!useAppStore.getState().showPreview); }
       if (e.key === 'E' && e.shiftKey)   { e.preventDefault(); setShowEditor(!useAppStore.getState().showEditor); }
       if (e.key === 'R' && e.shiftKey)   { e.preventDefault(); setViewOnlyMode(!useAppStore.getState().viewOnlyMode); }
+      if (e.key === 'f') {
+        const s = useAppStore.getState();
+        const activeTab = s.tabs.find((t) => t.id === s.activeTabId);
+        if ((activeTab as any)?.mode === 'preview') {
+          e.preventDefault();
+          (window as any).__previewFind?.();
+        }
+        // else: Cmd+F is handled by the Editor's custom keymap (opens find/replace bar)
+      }
+      // Cmd+Shift+V: cycle view mode (Edit → Split → Preview)
+      if (e.key === 'V' && e.shiftKey) {
+        e.preventDefault();
+        const s = useAppStore.getState();
+        const tab = s.tabs.find((t) => t.id === s.activeTabId);
+        const cur: string = (tab as any)?.mode ?? 'split';
+        const next = cur === 'edit' ? 'split' : cur === 'split' ? 'preview' : 'edit';
+        s.setTabMode(next as any);
+      }
       if (e.key === 'T' && e.shiftKey) {
         e.preventDefault();
         const themes = ['light', 'dark', 'solarized-light', 'solarized-dark'] as const;

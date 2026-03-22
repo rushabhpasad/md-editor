@@ -109,6 +109,32 @@
   height: auto;
 }
 
+/* ── Find-in-preview search highlights ── */
+.preview-pane mark.search-match {
+  background: rgba(255, 200, 0, 0.45);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.preview-pane mark.search-match.current-match {
+  background: rgba(255, 130, 0, 0.65);
+  outline: 1px solid rgba(255, 130, 0, 0.9);
+}
+
+/* Dark themes: slightly different tones for better contrast */
+[data-theme="dark"] .preview-pane mark.search-match,
+[data-theme="solarized-dark"] .preview-pane mark.search-match {
+  background: rgba(255, 215, 0, 0.35);
+  color: inherit;
+}
+
+[data-theme="dark"] .preview-pane mark.search-match.current-match,
+[data-theme="solarized-dark"] .preview-pane mark.search-match.current-match {
+  background: rgba(255, 140, 0, 0.55);
+  outline: 1px solid rgba(255, 180, 0, 0.9);
+}
+
 /* highlight.js overrides for dark theme */
 [data-theme="dark"] .preview-pane .hljs {
   background: #161b22;

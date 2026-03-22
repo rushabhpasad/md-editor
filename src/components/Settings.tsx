@@ -44,6 +44,17 @@ export function Settings() {
     { value: 'solarized-dark', label: 'Solarized Dark' },
   ];
 
+  const fontOptions: { value: string; label: string }[] = [
+    { value: "'JetBrains Mono', monospace", label: 'JetBrains Mono' },
+    { value: "'Fira Code', monospace", label: 'Fira Code' },
+    { value: "'Source Code Pro', monospace", label: 'Source Code Pro' },
+    { value: "Menlo, monospace", label: 'Menlo' },
+    { value: "Monaco, monospace", label: 'Monaco' },
+    { value: "Consolas, monospace", label: 'Consolas' },
+    { value: "'Courier New', monospace", label: 'Courier New' },
+    { value: "monospace", label: 'System Monospace' },
+  ];
+
   const modes: { value: TabViewMode; label: string }[] = [
     { value: 'split', label: 'Split (Editor + Preview)' },
     { value: 'edit', label: 'Edit only' },
@@ -117,12 +128,15 @@ export function Settings() {
 
           <div style={rowStyle}>
             <label style={labelStyle}>Font Family</label>
-            <input
-              type="text"
+            <select
               value={settings.fontFamily}
               onChange={(e) => updateSettings({ fontFamily: e.target.value })}
               style={{ ...inputStyle, width: '200px' }}
-            />
+            >
+              {fontOptions.map((f) => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </select>
           </div>
 
           <div style={rowStyle}>
