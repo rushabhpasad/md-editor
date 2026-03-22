@@ -1,6 +1,6 @@
 [package]
 name = "md-editor"
-version = "1.0.5"
+version = "1.1.0"
 description = "A Tauri Markdown Editor"
 authors = ["you"]
 edition = "2021"
