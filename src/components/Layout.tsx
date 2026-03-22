@@ -4,6 +4,7 @@ import 'allotment/dist/style.css';
 import { Editor } from './Editor';
 import { Preview } from './Preview';
 import { Toolbar } from './Toolbar';
+import { TitleBar } from './TitleBar';
 import { TabBar } from './TabBar';
 import { StatusBar } from './StatusBar';
 import { Settings } from './Settings';
@@ -55,6 +56,7 @@ export function Layout() {
         color: 'var(--color-app-text)',
       }}
     >
+      <TitleBar />
       {showToolbar && !viewOnlyMode && <Toolbar />}
       <TabBar />
 

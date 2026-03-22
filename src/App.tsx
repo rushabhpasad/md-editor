@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { ask } from '@tauri-apps/plugin-dialog';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { Layout } from './components/Layout';
 import { useFile } from './hooks/useFile';
 import { useTheme } from './hooks/useTheme';
@@ -26,8 +27,17 @@ export default function App() {
     clearRecentFiles,
     setShowAbout,
     setShowDiff,
+    filePath,
+    isDirty,
   } = useAppStore();
   useTheme();
+
+  // Update native window title to show the current file name
+  useEffect(() => {
+    const fileName = filePath ? filePath.split(/[/\\]/).pop()! : 'Untitled';
+    const title = isDirty ? `● ${fileName} — MD Editor` : `${fileName} — MD Editor`;
+    getCurrentWindow().setTitle(title).catch(() => {});
+  }, [filePath, isDirty]);
 
   // Open file passed via URL param (used when opening a new window with a file),
   // otherwise restore the previous session.
@@ -135,6 +145,7 @@ export default function App() {
         case 'export_html':       exportToHtml(); break;
         case 'toggle_diff':       setShowDiff(!useAppStore.getState().showDiff); break;
         case 'export_pdf':        window.print(); break;
+        case 'homepage':          openUrl('https://github.com/rushabhpasad/md-editor').catch(() => {}); break;
       }
     });
     return () => { unlisten.then((fn) => fn()); };

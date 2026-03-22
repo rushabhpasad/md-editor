@@ -1,4 +1,37 @@
-import { useAppStore, Theme } from '../store/appStore';
+import { useAppStore, Theme, TabViewMode } from '../store/appStore';
+
+const sectionStyle: React.CSSProperties = {
+  marginBottom: '24px',
+};
+
+const sectionHeadingStyle: React.CSSProperties = {
+  fontSize: '11px',
+  fontWeight: 600,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase' as const,
+  opacity: 0.5,
+  marginBottom: '12px',
+};
+
+const rowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: '10px',
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: '13px',
+};
+
+const inputStyle: React.CSSProperties = {
+  background: 'var(--color-input-bg)',
+  border: '1px solid var(--color-input-border)',
+  color: 'var(--color-app-text)',
+  borderRadius: '6px',
+  padding: '4px 8px',
+  fontSize: '13px',
+};
 
 export function Settings() {
   const { settings, updateSettings, setShowSettings } = useAppStore();
@@ -11,64 +44,101 @@ export function Settings() {
     { value: 'solarized-dark', label: 'Solarized Dark' },
   ];
 
+  const modes: { value: TabViewMode; label: string }[] = [
+    { value: 'split', label: 'Split (Editor + Preview)' },
+    { value: 'edit', label: 'Edit only' },
+    { value: 'preview', label: 'Preview only' },
+  ];
+
+  const overlayStyle: React.CSSProperties = {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+    backdropFilter: 'blur(2px)',
+  };
+
+  const panelStyle: React.CSSProperties = {
+    background: 'var(--color-panel-bg)',
+    color: 'var(--color-app-text)',
+    borderRadius: '12px',
+    padding: '24px',
+    width: '480px',
+    maxHeight: '80vh',
+    overflowY: 'auto',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+  };
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={(e) => e.target === e.currentTarget && setShowSettings(false)}
-    >
-      <div className="settings-panel bg-panel text-panel-text rounded-lg shadow-xl w-[480px] max-h-[80vh] overflow-y-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold">Preferences</h2>
+    <div style={overlayStyle} onClick={(e) => e.target === e.currentTarget && setShowSettings(false)}>
+      <div style={panelStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Preferences</h2>
           <button
             onClick={() => setShowSettings(false)}
-            className="text-xl leading-none opacity-60 hover:opacity-100"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-app-text)', fontSize: '20px', opacity: 0.5, lineHeight: 1 }}
           >
             ×
           </button>
         </div>
 
-        <div className="space-y-5">
-          {/* Theme */}
-          <div className="setting-row">
-            <label className="setting-label">Theme</label>
+        {/* Appearance */}
+        <div style={sectionStyle}>
+          <div style={sectionHeadingStyle}>Appearance</div>
+
+          <div style={rowStyle}>
+            <label style={labelStyle}>Theme</label>
             <select
               value={settings.theme}
               onChange={(e) => updateSettings({ theme: e.target.value as Theme })}
-              className="setting-select"
+              style={{ ...inputStyle, width: '200px' }}
             >
               {themes.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
           </div>
+        </div>
 
-          {/* Font Family */}
-          <div className="setting-row">
-            <label className="setting-label">Font Family</label>
+        {/* Editor */}
+        <div style={sectionStyle}>
+          <div style={sectionHeadingStyle}>Editor</div>
+
+          <div style={rowStyle}>
+            <label style={labelStyle}>Default View Mode</label>
+            <select
+              value={settings.defaultMode}
+              onChange={(e) => updateSettings({ defaultMode: e.target.value as TabViewMode })}
+              style={{ ...inputStyle, width: '200px' }}
+            >
+              {modes.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={rowStyle}>
+            <label style={labelStyle}>Font Family</label>
             <input
               type="text"
               value={settings.fontFamily}
               onChange={(e) => updateSettings({ fontFamily: e.target.value })}
-              className="setting-input"
+              style={{ ...inputStyle, width: '200px' }}
             />
           </div>
 
-          {/* Font Size */}
-          <div className="setting-row">
-            <label className="setting-label">Font Size (px)</label>
+          <div style={rowStyle}>
+            <label style={labelStyle}>Font Size (px)</label>
             <input
               type="number"
               min={8}
               max={32}
               value={settings.fontSize}
               onChange={(e) => updateSettings({ fontSize: Number(e.target.value) })}
-              className="setting-input w-20"
+              style={{ ...inputStyle, width: '72px' }}
             />
           </div>
 
-          {/* Line Height */}
-          <div className="setting-row">
-            <label className="setting-label">Line Height</label>
+          <div style={rowStyle}>
+            <label style={labelStyle}>Line Height</label>
             <input
               type="number"
               min={1}
@@ -76,51 +146,98 @@ export function Settings() {
               step={0.1}
               value={settings.lineHeight}
               onChange={(e) => updateSettings({ lineHeight: Number(e.target.value) })}
-              className="setting-input w-20"
+              style={{ ...inputStyle, width: '72px' }}
             />
           </div>
 
-          {/* Toggles */}
-          {(
-            [
-              ['wordWrap', 'Word Wrap'],
-              ['scrollSync', 'Scroll Sync'],
-              ['showLineNumbers', 'Show Line Numbers'],
-              ['autoSave', 'Auto Save'],
-              ['spellCheck', 'Spell Check'],
-            ] as [keyof typeof settings, string][]
-          ).map(([key, label]) => (
-            <div key={key} className="setting-row">
-              <label className="setting-label">{label}</label>
-              <input
-                type="checkbox"
-                checked={settings[key] as boolean}
-                onChange={(e) => updateSettings({ [key]: e.target.checked })}
-                className="w-4 h-4"
-              />
-            </div>
-          ))}
+          <div style={rowStyle}>
+            <label style={labelStyle}>Word Wrap</label>
+            <input
+              type="checkbox"
+              checked={settings.wordWrap}
+              onChange={(e) => updateSettings({ wordWrap: e.target.checked })}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+          </div>
 
-          {/* Auto Save Interval */}
+          <div style={rowStyle}>
+            <label style={labelStyle}>Show Line Numbers</label>
+            <input
+              type="checkbox"
+              checked={settings.showLineNumbers}
+              onChange={(e) => updateSettings({ showLineNumbers: e.target.checked })}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+          </div>
+
+          <div style={rowStyle}>
+            <label style={labelStyle}>Spell Check</label>
+            <input
+              type="checkbox"
+              checked={settings.spellCheck}
+              onChange={(e) => updateSettings({ spellCheck: e.target.checked })}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+          </div>
+        </div>
+
+        {/* Scroll Sync */}
+        <div style={sectionStyle}>
+          <div style={sectionHeadingStyle}>Scroll Sync</div>
+
+          <div style={rowStyle}>
+            <label style={labelStyle}>Scroll Sync (default for new tabs)</label>
+            <input
+              type="checkbox"
+              checked={settings.scrollSync}
+              onChange={(e) => updateSettings({ scrollSync: e.target.checked })}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+          </div>
+        </div>
+
+        {/* Auto Save */}
+        <div style={sectionStyle}>
+          <div style={sectionHeadingStyle}>Auto Save</div>
+
+          <div style={rowStyle}>
+            <label style={labelStyle}>Auto Save</label>
+            <input
+              type="checkbox"
+              checked={settings.autoSave}
+              onChange={(e) => updateSettings({ autoSave: e.target.checked })}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+          </div>
+
           {settings.autoSave && (
-            <div className="setting-row">
-              <label className="setting-label">Auto Save Interval (s)</label>
+            <div style={rowStyle}>
+              <label style={labelStyle}>Auto Save Interval (seconds)</label>
               <input
                 type="number"
                 min={5}
                 max={300}
                 value={settings.autoSaveInterval}
                 onChange={(e) => updateSettings({ autoSaveInterval: Number(e.target.value) })}
-                className="setting-input w-20"
+                style={{ ...inputStyle, width: '72px' }}
               />
             </div>
           )}
         </div>
 
-        <div className="mt-6 flex justify-end">
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             onClick={() => setShowSettings(false)}
-            className="px-4 py-2 rounded bg-accent text-white hover:bg-accent-hover transition-colors"
+            style={{
+              padding: '8px 20px',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              background: 'var(--color-accent)',
+              color: '#fff',
+              fontWeight: 600,
+              fontSize: '13px',
+            }}
           >
             Done
           </button>

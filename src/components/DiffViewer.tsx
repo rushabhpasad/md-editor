@@ -50,12 +50,13 @@ export function DiffViewer() {
   const hasChanges = diff.some(d => d.type !== 'same');
 
   const overlayStyle: React.CSSProperties = {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+    backdropFilter: 'blur(2px)',
   };
 
   const dialogStyle: React.CSSProperties = {
-    background: 'var(--color-settings-bg)',
+    background: 'var(--color-panel-bg)',
     color: 'var(--color-app-text)',
     borderRadius: '12px',
     padding: '0',

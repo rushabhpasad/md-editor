@@ -6,6 +6,7 @@ export type TabViewMode = 'edit' | 'preview' | 'split';
 
 export interface Settings {
   theme: Theme;
+  defaultMode: TabViewMode;
   fontFamily: string;
   fontSize: number;
   lineHeight: number;
@@ -102,6 +103,7 @@ interface AppState {
 
 const defaultSettings: Settings = {
   theme: 'system',
+  defaultMode: 'split',
   fontFamily: "'JetBrains Mono', monospace",
   fontSize: 14,
   lineHeight: 1.6,

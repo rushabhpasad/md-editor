@@ -75,6 +75,28 @@ pub fn run() {
             let recent_submenu = Submenu::with_items(handle, "Open Recent", true, &[&recent_none])?;
             let recent_submenu_clone = recent_submenu.clone();
 
+            // ── App menu (macOS convention: first menu = app name) ──────────────
+            let app_menu = {
+                let about        = MenuItem::with_id(handle, "about", "About MD Editor", true, None::<&str>)?;
+                let donate       = MenuItem::with_id(handle, "donate", "Donate / Support...", true, None::<&str>)?;
+                let sep1         = PredefinedMenuItem::separator(handle)?;
+                let prefs        = MenuItem::with_id(handle, "preferences", "Settings...", true, Some("CmdOrCtrl+Comma"))?;
+                let sep2         = PredefinedMenuItem::separator(handle)?;
+                let services     = PredefinedMenuItem::services(handle, None)?;
+                let sep3         = PredefinedMenuItem::separator(handle)?;
+                let hide         = PredefinedMenuItem::hide(handle, None)?;
+                let hide_others  = PredefinedMenuItem::hide_others(handle, None)?;
+                let show_all     = PredefinedMenuItem::show_all(handle, None)?;
+                let sep4         = PredefinedMenuItem::separator(handle)?;
+                let quit         = PredefinedMenuItem::quit(handle, Some("Quit MD Editor"))?;
+                Submenu::with_items(handle, "MD Editor", true, &[
+                    &about, &donate, &sep1, &prefs, &sep2,
+                    &services, &sep3,
+                    &hide, &hide_others, &show_all, &sep4, &quit,
+                ])?
+            };
+
+            // ── File menu ────────────────────────────────────────────────────────
             let file_menu = {
                 let new_file    = MenuItem::with_id(handle, "new", "New File", true, Some("CmdOrCtrl+N"))?;
                 let new_tab     = MenuItem::with_id(handle, "new_tab", "New Tab", true, Some("CmdOrCtrl+Shift+N"))?;
@@ -82,18 +104,17 @@ pub fn run() {
                 let sep1        = PredefinedMenuItem::separator(handle)?;
                 let save        = MenuItem::with_id(handle, "save", "Save", true, Some("CmdOrCtrl+S"))?;
                 let save_as     = MenuItem::with_id(handle, "save_as", "Save As...", true, Some("CmdOrCtrl+Shift+S"))?;
-                let sep_export  = PredefinedMenuItem::separator(handle)?;
+                let sep2        = PredefinedMenuItem::separator(handle)?;
                 let export_html = MenuItem::with_id(handle, "export_html", "Export as HTML...", true, None::<&str>)?;
                 let export_pdf  = MenuItem::with_id(handle, "export_pdf", "Export as PDF (Print)...", true, None::<&str>)?;
                 let export_submenu = Submenu::with_items(handle, "Export", true, &[&export_html, &export_pdf])?;
-                let sep2        = PredefinedMenuItem::separator(handle)?;
-                let quit        = PredefinedMenuItem::quit(handle, Some("Quit"))?;
                 Submenu::with_items(handle, "File", true, &[
                     &new_file, &new_tab, &open, &recent_submenu, &sep1,
-                    &save, &save_as, &sep_export, &export_submenu, &sep2, &quit,
+                    &save, &save_as, &sep2, &export_submenu,
                 ])?
             };
 
+            // ── Edit menu ────────────────────────────────────────────────────────
             let edit_menu = {
                 let undo       = PredefinedMenuItem::undo(handle, Some("Undo"))?;
                 let redo       = PredefinedMenuItem::redo(handle, Some("Redo"))?;
@@ -104,20 +125,19 @@ pub fn run() {
                 let select_all = PredefinedMenuItem::select_all(handle, Some("Select All"))?;
                 let sep2       = PredefinedMenuItem::separator(handle)?;
                 let find       = MenuItem::with_id(handle, "find", "Find", true, Some("CmdOrCtrl+F"))?;
-                let sep3       = PredefinedMenuItem::separator(handle)?;
-                let prefs      = MenuItem::with_id(handle, "preferences", "Preferences", true, Some("CmdOrCtrl+Comma"))?;
                 Submenu::with_items(handle, "Edit", true, &[
-                    &undo, &redo, &sep1, &cut, &copy, &paste, &select_all, &sep2, &find, &sep3, &prefs,
+                    &undo, &redo, &sep1, &cut, &copy, &paste, &select_all, &sep2, &find,
                 ])?
             };
 
+            // ── View menu ────────────────────────────────────────────────────────
             let view_menu = {
                 let toggle_editor      = MenuItem::with_id(handle, "toggle_editor", "Toggle Editor", true, Some("CmdOrCtrl+Shift+E"))?;
                 let toggle_preview     = MenuItem::with_id(handle, "toggle_preview", "Toggle Preview", true, Some("CmdOrCtrl+Shift+P"))?;
                 let toggle_toolbar     = MenuItem::with_id(handle, "toggle_toolbar", "Toggle Toolbar", true, None::<&str>)?;
                 let toggle_scroll_sync = MenuItem::with_id(handle, "toggle_scroll_sync", "Toggle Scroll Sync", true, None::<&str>)?;
                 let view_only          = MenuItem::with_id(handle, "view_only_mode", "View Only Mode", true, Some("CmdOrCtrl+Shift+R"))?;
-                let toggle_diff        = MenuItem::with_id(handle, "toggle_diff", "Toggle Diff View", true, None::<&str>)?;
+                let toggle_diff        = MenuItem::with_id(handle, "toggle_diff", "Show Changes", true, None::<&str>)?;
                 let sep1               = PredefinedMenuItem::separator(handle)?;
                 let increase_font      = MenuItem::with_id(handle, "increase_font", "Increase Font", true, Some("CmdOrCtrl+Equal"))?;
                 let decrease_font      = MenuItem::with_id(handle, "decrease_font", "Decrease Font", true, Some("CmdOrCtrl+Minus"))?;
@@ -137,13 +157,13 @@ pub fn run() {
                 ])?
             };
 
+            // ── Help menu ────────────────────────────────────────────────────────
             let help_menu = {
-                let about  = MenuItem::with_id(handle, "about", "About MD Editor", true, None::<&str>)?;
-                let donate = MenuItem::with_id(handle, "donate", "Donate / Support...", true, None::<&str>)?;
-                Submenu::with_items(handle, "Help", true, &[&about, &donate])?
+                let homepage = MenuItem::with_id(handle, "homepage", "MD Editor on GitHub", true, None::<&str>)?;
+                Submenu::with_items(handle, "Help", true, &[&homepage])?
             };
 
-            let menu = Menu::with_items(handle, &[&file_menu, &edit_menu, &view_menu, &help_menu])?;
+            let menu = Menu::with_items(handle, &[&app_menu, &file_menu, &edit_menu, &view_menu, &help_menu])?;
             app.set_menu(menu)?;
 
             // Store the recent submenu handle so update_recent_files can mutate it

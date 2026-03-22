@@ -10,12 +10,6 @@ export function StatusBar() {
     return { words, chars };
   }, [content]);
 
-  const displayPath = filePath
-    ? filePath.length > 50
-      ? '...' + filePath.slice(-47)
-      : filePath
-    : 'Untitled';
-
   return (
     <div
       style={{
@@ -27,13 +21,18 @@ export function StatusBar() {
         backgroundColor: 'var(--color-statusbar-bg)',
         color: 'var(--color-statusbar-text)',
         flexShrink: 0,
-        gap: '16px',
+        minWidth: 0,
       }}
     >
-      <span title={filePath || 'No file'} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
-        {isDirty ? '• ' : ''}{displayPath}
+      {/* Path: flex-grows to fill available space, CSS handles ellipsis */}
+      <span
+        title={filePath || 'Untitled'}
+        style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+      >
+        {isDirty ? '● ' : ''}{filePath || 'Untitled'}
       </span>
-      <span style={{ marginLeft: 'auto', display: 'flex', gap: '16px', flexShrink: 0 }}>
+      {/* Stats: always visible, never shrink */}
+      <span style={{ display: 'flex', gap: '16px', flexShrink: 0, marginLeft: '16px' }}>
         <span>Ln {cursorLine}, Col {cursorCol}</span>
         <span>{stats.words} words</span>
         <span>{stats.chars} chars</span>

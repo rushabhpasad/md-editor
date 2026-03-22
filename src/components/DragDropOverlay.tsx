@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { useAppStore } from '../store/appStore';
 import { useFile } from '../hooks/useFile';
@@ -9,10 +9,14 @@ export function DragDropOverlay() {
   const { content, filePath } = useAppStore();
   const { openFile, openFileInNewTab, openFileInNewWindow } = useFile();
 
-  const hasContent = content.trim().length > 0 || filePath !== null;
+  // Use a ref so the single event handler always reads the latest value
+  // without needing to re-register (which caused the stale-closure race).
+  const hasContentRef = useRef(false);
+  hasContentRef.current = content.trim().length > 0 || filePath !== null;
 
   useEffect(() => {
-    let unlisten: (() => void) | null = null;
+    let unlistenFn: (() => void) | null = null;
+    let cancelled = false;
 
     getCurrentWebviewWindow().onDragDropEvent((event) => {
       const payload = event.payload as any;
@@ -26,21 +30,23 @@ export function DragDropOverlay() {
         const mdFile = paths.find((p: string) => /\.(md|markdown|txt)$/i.test(p));
         if (mdFile) {
           setIsDragging(false);
-          if (hasContent) {
-            setDroppedFile(mdFile);
-          } else {
-            openFile(mdFile);
-          }
+          // Always show the dialog so the user chooses where to open
+          setDroppedFile(mdFile);
         } else {
           setIsDragging(false);
         }
       } else {
         setIsDragging(false);
       }
-    }).then((fn) => { unlisten = fn; });
+    }).then((fn) => {
+      if (cancelled) { fn(); } else { unlistenFn = fn; }
+    });
 
-    return () => { unlisten?.(); };
-  }, [hasContent]);
+    return () => {
+      cancelled = true;
+      unlistenFn?.();
+    };
+  }, []); // register once; hasContentRef always has the latest value
 
   const dismiss = () => setDroppedFile(null);
 

@@ -7,6 +7,8 @@
 [data-theme="light"] {
   --color-app-bg: #ffffff;
   --color-app-text: #24292f;
+  --color-titlebar-bg: #d0d7de;
+  --color-titlebar-text: #24292f;
   --color-toolbar-bg: #f6f8fa;
   --color-toolbar-text: #24292f;
   --color-toolbar-border: #d0d7de;
@@ -28,6 +30,8 @@
 [data-theme="dark"] {
   --color-app-bg: #0d1117;
   --color-app-text: #e6edf3;
+  --color-titlebar-bg: #161b22;
+  --color-titlebar-text: #e6edf3;
   --color-toolbar-bg: #161b22;
   --color-toolbar-text: #e6edf3;
   --color-toolbar-border: #30363d;
@@ -49,6 +53,8 @@
 [data-theme="solarized-light"] {
   --color-app-bg: #fdf6e3;
   --color-app-text: #657b83;
+  --color-titlebar-bg: #b8c0c8;
+  --color-titlebar-text: #073642;
   --color-toolbar-bg: #eee8d5;
   --color-toolbar-text: #586e75;
   --color-toolbar-border: #d3cbb8;
@@ -70,6 +76,8 @@
 [data-theme="solarized-dark"] {
   --color-app-bg: #002b36;
   --color-app-text: #93a1a1;
+  --color-titlebar-bg: #073642;
+  --color-titlebar-text: #93a1a1;
   --color-toolbar-bg: #073642;
   --color-toolbar-text: #93a1a1;
   --color-toolbar-border: #0a4252;
