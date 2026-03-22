@@ -42,6 +42,17 @@ jobs:
           echo "ARM_URL=${ARM_URL}" >> "$GITHUB_ENV"
           echo "X64_URL=${X64_URL}" >> "$GITHUB_ENV"
 
+          # Wait for assets to be available (tauri-action uploads after release creation)
+          for URL in "$ARM_URL" "$X64_URL"; do
+            for i in $(seq 1 12); do
+              STATUS=$(curl -o /dev/null -sL -w "%{http_code}" "$URL")
+              [ "$STATUS" = "200" ] && break
+              echo "Waiting for $URL (attempt $i, got $STATUS)..."
+              sleep 30
+            done
+            [ "$STATUS" != "200" ] && { echo "Asset not available after 6 minutes: $URL"; exit 1; }
+          done
+
           curl -fsSL "$ARM_URL" -o arm.dmg
           curl -fsSL "$X64_URL" -o x64.dmg
           echo "ARM_SHA=$(shasum -a 256 arm.dmg | awk '{print $1}')" >> "$GITHUB_ENV"
@@ -121,6 +132,15 @@ jobs:
 
           MSI_URL="https://github.com/rushabhpasad/md-editor/releases/download/${VERSION}/MD.Editor_${VERSION_NUM}_x64_en-US.msi"
           echo "MSI_URL=${MSI_URL}" >> "$GITHUB_ENV"
+
+          # Wait for asset to be available
+          for i in $(seq 1 12); do
+            STATUS=$(curl -o /dev/null -sL -w "%{http_code}" "$MSI_URL")
+            [ "$STATUS" = "200" ] && break
+            echo "Waiting for MSI (attempt $i, got $STATUS)..."
+            sleep 30
+          done
+          [ "$STATUS" != "200" ] && { echo "Asset not available after 6 minutes: $MSI_URL"; exit 1; }
 
           curl -fsSL "$MSI_URL" -o installer.msi
           echo "MSI_SHA=$(shasum -a 256 installer.msi | awk '{print $1}')" >> "$GITHUB_ENV"
