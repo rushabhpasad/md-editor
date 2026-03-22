@@ -1,8 +1,7 @@
 name: Submit to winget (first-time only)
 
-# wingetcreate new is interactive and does not accept metadata flags.
-# This workflow creates the three required manifest YAMLs directly, then
-# uses wingetcreate submit to fork winget-pkgs and open a PR.
+# Creates the three required winget manifest YAMLs and submits a PR to
+# microsoft/winget-pkgs via wingetcreate submit.
 # Delete this workflow after the PR is merged.
 
 on:
@@ -13,78 +12,76 @@ on:
         required: true
         type: string
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   submit:
     runs-on: windows-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Download MSI and compute SHA256
         shell: pwsh
         run: |
           $version = "${{ inputs.version }}"
-          $msiUrl = "https://github.com/rushabhpasad/md-editor/releases/download/v${version}/MD.Editor_${version}_x64_en-US.msi"
+          $msiUrl  = "https://github.com/rushabhpasad/md-editor/releases/download/v${version}/MD.Editor_${version}_x64_en-US.msi"
           Invoke-WebRequest -Uri $msiUrl -OutFile installer.msi
           $hash = (Get-FileHash installer.msi -Algorithm SHA256).Hash.ToLower()
-          "MSI_URL=$msiUrl"   | Out-File -FilePath $env:GITHUB_ENV -Append
-          "MSI_SHA=$hash"     | Out-File -FilePath $env:GITHUB_ENV -Append
+          "MSI_URL=$msiUrl" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "MSI_SHA=$hash"   | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Create winget manifest files
         shell: pwsh
         run: |
           $version = "${{ inputs.version }}"
-          $id  = "rushabhpasad.MDEditor"
-          $dir = "manifests/r/rushabhpasad/MDEditor/$version"
+          $id      = "rushabhpasad.MDEditor"
+          $dir     = "manifests/r/rushabhpasad/MDEditor/$version"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
 
-          # Version manifest
-          Set-Content "$dir/$id.yaml" @"
-PackageIdentifier: $id
-PackageVersion: $version
-DefaultLocale: en-US
-ManifestType: version
-ManifestVersion: 1.6.0
-"@
+          @(
+            "PackageIdentifier: $id",
+            "PackageVersion: $version",
+            "DefaultLocale: en-US",
+            "ManifestType: version",
+            "ManifestVersion: 1.6.0"
+          ) | Set-Content "$dir/$id.yaml"
 
-          # Installer manifest
-          Set-Content "$dir/$id.installer.yaml" @"
-PackageIdentifier: $id
-PackageVersion: $version
-InstallerLocale: en-US
-InstallerType: msi
-Scope: user
-InstallModes:
-  - interactive
-  - silent
-  - silentWithProgress
-Installers:
-  - Architecture: x64
-    InstallerUrl: $env:MSI_URL
-    InstallerSha256: $env:MSI_SHA
-ManifestType: installer
-ManifestVersion: 1.6.0
-"@
+          @(
+            "PackageIdentifier: $id",
+            "PackageVersion: $version",
+            "InstallerLocale: en-US",
+            "InstallerType: msi",
+            "Scope: user",
+            "InstallModes:",
+            "  - interactive",
+            "  - silent",
+            "  - silentWithProgress",
+            "Installers:",
+            "  - Architecture: x64",
+            "    InstallerUrl: $env:MSI_URL",
+            "    InstallerSha256: $env:MSI_SHA",
+            "ManifestType: installer",
+            "ManifestVersion: 1.6.0"
+          ) | Set-Content "$dir/$id.installer.yaml"
 
-          # Default locale manifest
-          Set-Content "$dir/$id.locale.en-US.yaml" @"
-PackageIdentifier: $id
-PackageVersion: $version
-PackageLocale: en-US
-Publisher: rushabhpasad
-PublisherUrl: https://github.com/rushabhpasad
-PackageName: MD Editor
-PackageUrl: https://github.com/rushabhpasad/md-editor
-License: MIT
-LicenseUrl: https://github.com/rushabhpasad/md-editor/blob/main/LICENSE
-ShortDescription: Lightweight cross-platform desktop Markdown editor with live split-pane preview
-Tags:
-  - markdown
-  - editor
-  - preview
-  - text-editor
-ManifestType: defaultLocale
-ManifestVersion: 1.6.0
-"@
+          @(
+            "PackageIdentifier: $id",
+            "PackageVersion: $version",
+            "PackageLocale: en-US",
+            "Publisher: rushabhpasad",
+            "PublisherUrl: https://github.com/rushabhpasad",
+            "PackageName: MD Editor",
+            "PackageUrl: https://github.com/rushabhpasad/md-editor",
+            "License: MIT",
+            "LicenseUrl: https://github.com/rushabhpasad/md-editor/blob/main/LICENSE",
+            "ShortDescription: Lightweight cross-platform desktop Markdown editor with live split-pane preview",
+            "Tags:",
+            "  - markdown",
+            "  - editor",
+            "  - preview",
+            "  - text-editor",
+            "ManifestType: defaultLocale",
+            "ManifestVersion: 1.6.0"
+          ) | Set-Content "$dir/$id.locale.en-US.yaml"
 
           Write-Host "Manifests written to $dir"
           Get-ChildItem $dir
@@ -99,5 +96,5 @@ ManifestVersion: 1.6.0
           WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
         run: |
           $version = "${{ inputs.version }}"
-          $dir = "manifests/r/rushabhpasad/MDEditor/$version"
+          $dir     = "manifests/r/rushabhpasad/MDEditor/$version"
           wingetcreate submit --token $env:WINGET_TOKEN --no-open $dir
