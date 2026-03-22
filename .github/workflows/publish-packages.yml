@@ -92,7 +92,10 @@ jobs:
   winget:
     name: Submit to winget
     runs-on: windows-latest
+    # Remove the continue-on-error line once rushabhpasad.MDEditor is merged
+    # into microsoft/winget-pkgs via the one-time manual wingetcreate submission.
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.draft }}
+    continue-on-error: true
     steps:
       - uses: vedantmgoyal9/winget-releaser@v2
         with:
