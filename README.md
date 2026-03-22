@@ -6,6 +6,7 @@ A lightweight, cross-platform desktop Markdown editor with a live split-pane pre
 
 ## Features
 
+- **Custom title bar** — shows the current filename centered; theme-contrast background (darker header in light themes, near-black in dark themes); native window dragging
 - **Split-pane layout** — resizable editor and preview side by side; toggle between Edit, Split, and Preview modes per tab
 - **Tabs** — open multiple documents simultaneously, each with its own view mode and scroll sync state
 - **Live preview** — GitHub Flavored Markdown rendered in real time (150 ms debounce)
@@ -18,7 +19,9 @@ A lightweight, cross-platform desktop Markdown editor with a live split-pane pre
 - **File management** — open, save, save-as, recent files (last 10), unsaved-changes guard with Save/Discard/Cancel, drag & drop
 - **"Open With" support** — set MD Editor as the default app for `.md` and `.markdown` files
 - **Session restore** — reopens last-open tabs (including untitled documents) on next launch
-- **Export** — Export to HTML (standalone file with styles) or PDF (via system print dialog)
+- **Export** — Export to HTML (standalone file with styles), Print Preview (PDF via system dialog), or Print Raw Markdown
+- **Find in editor** — custom find/replace bar (Cmd+F) with match count and Replace / Replace All; identical find bar in Preview pane
+- **Dashboard** — welcome screen with New Document, Open File, and Recent Files when no tabs are open
 - **Show Changes** — diff view comparing current content against the last-saved version
 - **Multi-window** — open files in separate windows
 - **View-only mode** — read-only preview without the editor
@@ -163,13 +166,15 @@ Distributable bundles are written to `src-tauri/target/release/bundle/`.
 |---|---|---|
 | New File (new tab) | Cmd+N | Ctrl+N |
 | New Tab | Cmd+Shift+N | Ctrl+Shift+N |
-| Open | Cmd+O | Ctrl+O |
+| Open (in new tab) | Cmd+O | Ctrl+O |
 | Save | Cmd+S | Ctrl+S |
-| Save As | Cmd+Shift+S | Ctrl+Shift+S |
+| Save As | File menu | File menu |
 | Close Tab | Cmd+W | Ctrl+W |
-| Find | Cmd+F | Ctrl+F |
+| Find / Replace | Cmd+F | Ctrl+F |
 | Bold | Cmd+B | Ctrl+B |
 | Italic | Cmd+I | Ctrl+I |
+| Cycle View (Edit→Split→Preview) | Cmd+Shift+V | Ctrl+Shift+V |
+| Toggle Scroll Sync (per tab) | Cmd+Shift+S | Ctrl+Shift+S |
 | Toggle Preview | Cmd+Shift+P | Ctrl+Shift+P |
 | Toggle Editor | Cmd+Shift+E | Ctrl+Shift+E |
 | Toggle View-only Mode | Cmd+Shift+R | Ctrl+Shift+R |
@@ -177,7 +182,7 @@ Distributable bundles are written to `src-tauri/target/release/bundle/`.
 | Increase Font | Cmd++ | Ctrl++ |
 | Decrease Font | Cmd+- | Ctrl+- |
 | Reset Font | Cmd+0 | Ctrl+0 |
-| Preferences | Cmd+, | Ctrl+, |
+| Settings | Cmd+, | Ctrl+, |
 
 ## Project Structure
 
@@ -195,18 +200,20 @@ md-editor/
 │
 └── src/                # React frontend
     ├── components/
-    │   ├── Editor.tsx        # CodeMirror 6 instance
-    │   ├── Preview.tsx       # Live HTML preview
+    │   ├── Layout.tsx        # Split-pane shell; renders Dashboard when no tabs open
+    │   ├── Dashboard.tsx     # Welcome screen (new doc / open / recent files)
+    │   ├── TitleBar.tsx      # Custom title bar with filename + drag region
+    │   ├── Editor.tsx        # CodeMirror 6 instance with custom find/replace bar
+    │   ├── Preview.tsx       # Live HTML preview with find bar
     │   ├── Toolbar.tsx       # Formatting buttons + mode toggle + sync
     │   ├── TabBar.tsx        # Tab management UI
-    │   ├── StatusBar.tsx     # Word/char count, cursor, encoding
-    │   ├── Settings.tsx      # Preferences modal
+    │   ├── StatusBar.tsx     # Word/char count, cursor, full path
+    │   ├── Settings.tsx      # Preferences modal (sectioned)
     │   ├── RecentFiles.tsx   # Recent files modal
     │   ├── About.tsx         # About dialog (credits + donate)
-    │   ├── ExportDialog.tsx  # Export to HTML/PDF modal
+    │   ├── ExportDialog.tsx  # Export to HTML / Print PDF / Print Raw Markdown
     │   ├── DiffViewer.tsx    # Show changes since last save
-    │   ├── DragDropOverlay.tsx # Drag & drop handler
-    │   └── Layout.tsx        # Split-pane shell
+    │   └── DragDropOverlay.tsx # Drag & drop handler
     ├── hooks/
     │   ├── useFile.ts        # Open / save / recent file logic
     │   ├── useMarkdown.ts    # Debounced MD → HTML conversion
@@ -222,16 +229,17 @@ md-editor/
 
 ## Settings
 
-Open via **Edit → Preferences** or `Cmd/Ctrl+,`.
+Open via **MD Editor → Settings...** or `Cmd/Ctrl+,`.
 
 | Setting | Default |
 |---|---|
 | Theme | System |
-| Font Family | JetBrains Mono |
+| Default View Mode | Split |
+| Font Family | JetBrains Mono (dropdown of 8 choices) |
 | Font Size | 14px |
 | Line Height | 1.6 |
 | Word Wrap | On |
-| Scroll Sync | On |
+| Scroll Sync (default for new tabs) | On |
 | Auto Save | Off |
 | Auto Save Interval | 30s |
 | Show Line Numbers | On |
