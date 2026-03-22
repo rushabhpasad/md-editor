@@ -28,7 +28,6 @@ export interface Tab {
   savedContent: string;    // content at last save (for diff view)
 }
 
-const INITIAL_TAB_ID = 'tab-initial';
 
 interface SessionTab {
   id: string;
@@ -123,8 +122,8 @@ export const useAppStore = create<AppState>()(
       isDirty: false,
       recentFiles: [],
 
-      tabs: [{ id: INITIAL_TAB_ID, content: '', filePath: null, isDirty: false, mode: 'split', scrollSync: true, savedContent: '' }],
-      activeTabId: INITIAL_TAB_ID,
+      tabs: [],
+      activeTabId: '',
 
       showEditor: true,
       showPreview: true,

@@ -65,6 +65,14 @@ export function useFile() {
 
   const newFile = async () => {
     const state = useAppStore.getState();
+
+    // No tabs open — just create a fresh one (coming from dashboard)
+    if (state.tabs.length === 0) {
+      newTab();
+      useAppStore.getState().setTabMode('edit');
+      return;
+    }
+
     const currentTab = state.tabs.find((t) => t.id === state.activeTabId);
 
     // If current tab is empty untitled, just reset it
@@ -85,6 +93,8 @@ export function useFile() {
   const openFile = async (path?: string) => {
     const proceed = await checkUnsavedChanges();
     if (!proceed) return;
+    // If there are no tabs (dashboard state), create one before loading
+    if (useAppStore.getState().tabs.length === 0) newTab();
     let targetPath = path;
     if (!targetPath) {
       const selected = await open({
@@ -245,12 +255,8 @@ ${html}
     const sessionTabs = store.sessionTabs;
     if (!sessionTabs || sessionTabs.length === 0) return;
 
-    let isFirst = true;
     for (const sessionTab of sessionTabs) {
-      if (!isFirst) {
-        newTab();
-      }
-      isFirst = false;
+      newTab();
 
       if (sessionTab.filePath) {
         try {
